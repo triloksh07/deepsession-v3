@@ -1,27 +1,28 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
-import { 
-  BarChart, 
-  Bar, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
-  PieChart, 
-  Pie, 
-  Cell, 
-  LineChart, 
+import Link from 'next/link';
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  PieChart,
+  Pie,
+  Cell,
+  LineChart,
   Line,
   ResponsiveContainer,
   Legend
 } from 'recharts';
-import { 
-  Clock, 
-  TrendingUp, 
-  Target, 
+import {
+  Clock,
+  TrendingUp,
+  Target,
   Calendar,
   Activity,
   Zap,
@@ -44,7 +45,26 @@ interface AnalyticsProps {
   sessions: Session[];
 }
 
+interface TypeData {
+  name: string;
+  value: number;
+  count: number;
+}
+
 export function Analytics({ sessions }: AnalyticsProps) {
+  // ✅ LOG #3: Check the props received by the component
+  console.log("3. Data Received as Prop in Analytics.tsx:", sessions);
+
+  // Colors for charts
+  const COLORS = [
+    '#3B82F6', // blue
+    '#10B981', // green
+    '#8B5CF6', // purple
+    '#EF4444', // red
+    '#F59E0B', // yellow
+    '#6B7280'  // gray
+  ];
+
   const [timeRange, setTimeRange] = useState<'week' | 'month' | 'year'>('month');
 
   // Helper functions
@@ -61,138 +81,202 @@ export function Analytics({ sessions }: AnalyticsProps) {
     return (seconds / 3600).toFixed(1);
   };
 
-  const getDateRange = (range: 'week' | 'month' | 'year') => {
-    const now = new Date();
-    const end = new Date(now);
-    const start = new Date(now);
+  // useMemo to optimize calculations
+  const {
+    filteredSessions,
+    totalSessions,
+    totalFocusTime,
+    averageSessionLength,
+    currentStreak,
+    typeData,
+    dailyChartData,
+    hourlyData,
+    weeklyData,
+    mostProductiveDay,
+    heatmapData,
+  } = useMemo(() => {
 
-    switch (range) {
-      case 'week':
-        start.setDate(now.getDate() - 7);
+    const getDateRange = (range: 'week' | 'month' | 'year') => {
+      const now = new Date();
+      const end = new Date(now);
+      const start = new Date(now);
+
+      switch (range) {
+        case 'week':
+          start.setDate(now.getDate() - 7);
+          break;
+        case 'month':
+          start.setDate(now.getDate() - 30);
+          break;
+        case 'year':
+          start.setDate(now.getDate() - 365);
+          break;
+      }
+
+      return { start: start.toISOString().split('T')[0], end: end.toISOString().split('T')[0] };
+    };
+
+    // Filter sessions by time range
+    const { start, end } = getDateRange(timeRange);
+    const filteredSessions = sessions.filter(session =>
+      session.date >= start && session.date <= end
+    );
+
+    // Calculate summary statistics
+    const totalSessions = filteredSessions.length;
+    const totalFocusTime = filteredSessions.reduce((acc, session) => acc + (session.sessionTime / 1000), 0);
+    const totalBreakTime = filteredSessions.reduce((acc, session) => acc + (session.breakTime / 1000), 0);
+    const averageSessionLength = totalSessions > 0 ? totalFocusTime / totalSessions : 0;
+
+    // Calculate streak
+    const today = new Date().toISOString().split('T')[0];
+    let currentStreak = 0;
+    const sortedDates = [...new Set(sessions.map(s => s.date))].sort().reverse();
+    const checkDate = new Date();
+
+    for (const date of sortedDates) {
+      const dateStr = checkDate.toISOString().split('T')[0];
+      if (date === dateStr) {
+        currentStreak++;
+        checkDate.setDate(checkDate.getDate() - 1);
+      } else {
         break;
-      case 'month':
-        start.setDate(now.getDate() - 30);
-        break;
-      case 'year':
-        start.setDate(now.getDate() - 365);
-        break;
+      }
     }
 
-    return { start: start.toISOString().split('T')[0], end: end.toISOString().split('T')[0] };
-  };
+    // Session type breakdown
+    const typeBreakdown = filteredSessions.reduce((acc: { [key: string]: number }, session) => {
+      acc[session.type] = (acc[session.type] || 0) + (session.sessionTime / 1000);
+      return acc;
+    }, {});
 
-  // Filter sessions by time range
-  const { start, end } = getDateRange(timeRange);
-  const filteredSessions = sessions.filter(session => 
-    session.date >= start && session.date <= end
-  );
+    const typeData = Object.entries(typeBreakdown).map(([type, time]) => ({
+      name: type,
+      value: Math.round(time / 3600 * 100) / 100, // Convert to hours with 2 decimal places
+      count: filteredSessions.filter(s => s.type === type).length
+    })).sort((a, b) => b.value - a.value);
 
-  // Calculate summary statistics
-  const totalSessions = filteredSessions.length;
-  const totalFocusTime = filteredSessions.reduce((acc, session) => acc + session.sessionTime, 0);
-  const totalBreakTime = filteredSessions.reduce((acc, session) => acc + session.breakTime, 0);
-  const averageSessionLength = totalSessions > 0 ? totalFocusTime / totalSessions : 0;
+    // Daily activity data
+    const dailyData = filteredSessions.reduce((acc: { [key: string]: number }, session) => {
+      acc[session.date] = (acc[session.date] || 0) + (session.sessionTime / 1000);
+      return acc;
+    }, {});
 
-  // Calculate streak
-  const today = new Date().toISOString().split('T')[0];
-  let currentStreak = 0;
-  const sortedDates = [...new Set(sessions.map(s => s.date))].sort().reverse();
-  let checkDate = new Date();
-  
-  for (const date of sortedDates) {
-    const dateStr = checkDate.toISOString().split('T')[0];
-    if (date === dateStr) {
-      currentStreak++;
-      checkDate.setDate(checkDate.getDate() - 1);
-    } else {
-      break;
-    }
-  }
+    const dailyChartData = Object.entries(dailyData)
+      .map(([date, time]) => ({
+        date,
+        hours: Math.round(time / 3600 * 100) / 100,
+        sessions: filteredSessions.filter(s => s.date === date).length
+      }))
+      .sort((a, b) => a.date.localeCompare(b.date))
+      .slice(-30); // Last 30 days
 
-  // Session type breakdown
-  const typeBreakdown = filteredSessions.reduce((acc: { [key: string]: number }, session) => {
-    acc[session.type] = (acc[session.type] || 0) + session.sessionTime;
-    return acc;
-  }, {});
+    // Hourly pattern analysis
+    const hourlyPattern = filteredSessions.reduce((acc: { [key: number]: number }, session) => {
+      const hour = new Date(session.startTime).getHours();
+      acc[hour] = (acc[hour] || 0) + 1;
+      return acc;
+    }, {});
 
-  const typeData = Object.entries(typeBreakdown).map(([type, time]) => ({
-    name: type,
-    value: Math.round(time / 3600 * 100) / 100, // Convert to hours with 2 decimal places
-    count: filteredSessions.filter(s => s.type === type).length
-  })).sort((a, b) => b.value - a.value);
+    const hourlyData = Array.from({ length: 24 }, (_, hour) => ({
+      hour: hour.toString().padStart(2, '0') + ':00',
+      sessions: hourlyPattern[hour] || 0
+    }));
 
-  // Daily activity data
-  const dailyData = filteredSessions.reduce((acc: { [key: string]: number }, session) => {
-    acc[session.date] = (acc[session.date] || 0) + session.sessionTime;
-    return acc;
-  }, {});
+    // --- ACCURACY FIX & EFFICIENCY IMPROVEMENT ---
 
-  const dailyChartData = Object.entries(dailyData)
-    .map(([date, time]) => ({
-      date,
-      hours: Math.round(time / 3600 * 100) / 100,
-      sessions: filteredSessions.filter(s => s.date === date).length
-    }))
-    .sort((a, b) => a.date.localeCompare(b.date))
-    .slice(-30); // Last 30 days
+    // 1. Process weekly data in a SINGLE PASS
+    const weeklyAggregates = filteredSessions.reduce((acc, session) => {
+      const dayIndex = new Date(session.date).getDay(); // 0 for Sunday, ..., 6 for Saturday
 
-  // Hourly pattern analysis
-  const hourlyPattern = filteredSessions.reduce((acc: { [key: number]: number }, session) => {
-    const hour = new Date(session.startTime).getHours();
-    acc[hour] = (acc[hour] || 0) + 1;
-    return acc;
-  }, {});
+      // Initialize if it's the first time we see this day
+      if (!acc[dayIndex]) {
+        acc[dayIndex] = {
+          totalSeconds: 0,
+          uniqueDates: new Set<string>(),
+        };
+      }
 
-  const hourlyData = Array.from({ length: 24 }, (_, hour) => ({
-    hour: hour.toString().padStart(2, '0') + ':00',
-    sessions: hourlyPattern[hour] || 0
-  }));
+      // Add session time IN SECONDS and track the unique date
+      acc[dayIndex].totalSeconds += (session.sessionTime / 1000); // The critical fix: convert ms to seconds
+      acc[dayIndex].uniqueDates.add(session.date);
 
-  // Weekly pattern
-  const weeklyPattern = filteredSessions.reduce((acc: { [key: number]: number }, session) => {
-    const day = new Date(session.date).getDay();
-    acc[day] = (acc[day] || 0) + session.sessionTime;
-    return acc;
-  }, {});
+      return acc;
+    }, {} as { [key: number]: { totalSeconds: number; uniqueDates: Set<string> } });
 
-  const weeklyData = [
-    'Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'
-  ].map((day, index) => ({
-    day: day.slice(0, 3),
-    hours: Math.round((weeklyPattern[index] || 0) / 3600 * 100) / 100
-  }));
+    // 2. Calculate the final weekly data with the correct average
+    const weeklyData = [
+      'Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'
+    ].map((dayName, index) => {
+      const aggregate = weeklyAggregates[index];
 
-  // Colors for charts
-  const COLORS = [
-    '#3B82F6', // blue
-    '#10B981', // green
-    '#8B5CF6', // purple
-    '#EF4444', // red
-    '#F59E0B', // yellow
-    '#6B7280'  // gray
-  ];
+      if (!aggregate) {
+        return { day: dayName.slice(0, 3), hours: 0 };
+      }
 
-  // Activity heatmap data (simplified version)
-  const getLast90Days = () => {
-    const days = [];
-    const today = new Date();
-    for (let i = 89; i >= 0; i--) {
-      const date = new Date(today);
-      date.setDate(today.getDate() - i);
-      const dateStr = date.toISOString().split('T')[0];
-      const dayData = filteredSessions.filter(s => s.date === dateStr);
-      const totalTime = dayData.reduce((acc, session) => acc + session.sessionTime, 0);
-      days.push({
-        date: dateStr,
-        sessions: dayData.length,
-        totalTime,
-        intensity: totalTime > 0 ? Math.min(Math.ceil(totalTime / 3600), 4) : 0
-      });
-    }
-    return days;
-  };
+      const numActiveDays = aggregate.uniqueDates.size;
+      const averageSeconds = aggregate.totalSeconds / numActiveDays;
+      const averageHours = averageSeconds / 3600;
 
-  const heatmapData = getLast90Days();
+      return {
+        day: dayName.slice(0, 3), // e.g., "Wed"
+        dayName: dayName,       // e.g., "Wednesday"
+        hours: Math.round(averageHours * 100) / 100,
+      };
+    });
+    // 3. FIX for the Productivity Insight Card
+    // Also fixing the "Wedday" typo by using a full day name property.
+    const mostProductiveDay = weeklyData.reduce((max, day) => day.hours > max.hours ? day : max);
+
+    // Colors for charts
+    // const COLORS = [
+    //   '#3B82F6', // blue
+    //   '#10B981', // green
+    //   '#8B5CF6', // purple
+    //   '#EF4444', // red
+    //   '#F59E0B', // yellow
+    //   '#6B7280'  // gray
+    // ];
+
+    // Activity heatmap data (simplified version)
+    const getLast90Days = () => {
+      const days = [];
+      const today = new Date();
+      for (let i = 89; i >= 0; i--) {
+        const date = new Date(today);
+        date.setDate(today.getDate() - i);
+        const dateStr = date.toISOString().split('T')[0];
+        const dayData = filteredSessions.filter(s => s.date === dateStr);
+        const totalTime = dayData.reduce((acc, session) => acc + (session.sessionTime / 1000), 0);
+        days.push({
+          date: dateStr,
+          sessions: dayData.length,
+          totalTime,
+          intensity: totalTime > 0 ? Math.min(Math.ceil(totalTime / 3600), 4) : 0
+        });
+      }
+      return days;
+    };
+
+    const heatmapData = getLast90Days();
+
+
+    // Finally, return all the calculated values in an object
+    return {
+      filteredSessions,
+      totalSessions,
+      totalFocusTime,
+      averageSessionLength,
+      currentStreak,
+      typeData,
+      dailyChartData,
+      hourlyData,
+      weeklyData,
+      mostProductiveDay,
+      heatmapData,
+    };
+    // 3. Add the dependencies array
+  }, [sessions, timeRange]);
 
   if (sessions.length === 0) {
     return (
@@ -209,6 +293,7 @@ export function Analytics({ sessions }: AnalyticsProps) {
       {/* Header with time range selector */}
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-medium">Analytics & Insights</h2>
+        <button><Link href="/">Home</Link></button>
         <Select value={timeRange} onValueChange={(value: 'week' | 'month' | 'year') => setTimeRange(value)}>
           <SelectTrigger className="w-32">
             <SelectValue />
@@ -278,27 +363,27 @@ export function Analytics({ sessions }: AnalyticsProps) {
             <ResponsiveContainer width="100%" height={300}>
               <LineChart data={dailyChartData}>
                 <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
-                <XAxis 
-                  dataKey="date" 
+                <XAxis
+                  dataKey="date"
                   tickFormatter={(value) => new Date(value).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                   fontSize={12}
                 />
                 <YAxis fontSize={12} />
-                <Tooltip 
-                  labelFormatter={(value) => new Date(value).toLocaleDateString('en-US', { 
+                <Tooltip
+                  labelFormatter={(value) => new Date(value).toLocaleDateString('en-US', {
                     weekday: 'long',
-                    month: 'long', 
-                    day: 'numeric' 
+                    month: 'long',
+                    day: 'numeric'
                   })}
                   formatter={(value, name) => [
                     name === 'hours' ? `${value}h` : value,
                     name === 'hours' ? 'Focus Time' : 'Sessions'
                   ]}
                 />
-                <Line 
-                  type="monotone" 
-                  dataKey="hours" 
-                  stroke="#3B82F6" 
+                <Line
+                  type="monotone"
+                  dataKey="hours"
+                  stroke="#3B82F6"
                   strokeWidth={2}
                   dot={{ fill: '#3B82F6', strokeWidth: 2, r: 4 }}
                 />
@@ -329,12 +414,22 @@ export function Analytics({ sessions }: AnalyticsProps) {
                   ))}
                 </Pie>
                 <Tooltip formatter={(value) => [`${value}h`, 'Focus Time']} />
-                <Legend 
-                  formatter={(value, entry) => (
-                    <span style={{ color: entry.color }}>
-                      {value} ({entry.payload.count} sessions)
-                    </span>
-                  )}
+                <Legend
+                  formatter={(value, entry) => {
+                    // FIX: Use a double assertion to override the mismatched type
+                    const payload = entry.payload as unknown as TypeData;
+                    return (
+                      <span style={{ color: entry.color }}>
+                        {value} ({payload?.count} sessions)
+                      </span>
+                    );
+                  }}
+                // formatter={(value, entry) => (
+                //   <span style={{ color: entry.color }}>
+                //     {/* FIX: Use optional chaining to safely access payload.count */}
+                //     {value} ({entry.payload.count} sessions)
+                //   </span>
+                // )}
                 />
               </PieChart>
             </ResponsiveContainer>
@@ -368,8 +463,8 @@ export function Analytics({ sessions }: AnalyticsProps) {
             <ResponsiveContainer width="100%" height={300}>
               <BarChart data={hourlyData}>
                 <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
-                <XAxis 
-                  dataKey="hour" 
+                <XAxis
+                  dataKey="hour"
                   fontSize={12}
                   interval={2}
                 />
@@ -395,13 +490,12 @@ export function Analytics({ sessions }: AnalyticsProps) {
             {heatmapData.map((day, index) => (
               <div
                 key={day.date}
-                className={`w-3 h-3 rounded-sm ${
-                  day.intensity === 0 ? 'bg-gray-100' :
+                className={`w-3 h-3 rounded-sm ${day.intensity === 0 ? 'bg-gray-100' :
                   day.intensity === 1 ? 'bg-green-200' :
-                  day.intensity === 2 ? 'bg-green-300' :
-                  day.intensity === 3 ? 'bg-green-400' :
-                  'bg-green-500'
-                }`}
+                    day.intensity === 2 ? 'bg-green-300' :
+                      day.intensity === 3 ? 'bg-green-400' :
+                        'bg-green-500'
+                  }`}
                 title={`${day.date}: ${day.sessions} sessions, ${formatTime(day.totalTime)}`}
               />
             ))}
@@ -435,12 +529,27 @@ export function Analytics({ sessions }: AnalyticsProps) {
               <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
                 <div>
                   <h4 className="font-medium">Most Productive Day</h4>
-                  <p className="text-sm text-muted-foreground">
-                    {weeklyData.reduce((max, day) => day.hours > max.hours ? day : max).day}day with {formatTimeDecimal(weeklyData.reduce((max, day) => day.hours > max.hours ? day : max).hours * 3600)}h average
-                  </p>
+                  {
+                    /* <p className="text-sm text-muted-foreground">
+                      {weeklyData.reduce((max, day) => day.hours > max.hours ? day : max).day}day with {formatTimeDecimal(weeklyData.reduce((max, day) => day.hours > max.hours ? day : max).hours * 3600)}h average
+                    </p> */
+
+                    // 4. FIX for the Productivity Insight Card
+                    // The text was multiplying by 3600, but the `hours` value is already in hours.
+                    // This now correctly uses the new 'hours' average.
+                    // <p className="text-sm text-muted-foreground">
+                    //   {weeklyData.reduce((max, day) => day.hours > max.hours ? day : max).day} with a {weeklyData.reduce((max, day) => day.hours > max.hours ? day : max).hours.toFixed(1)}h average
+                    // </p>
+                    // -----------New----------
+                    <p className="text-sm text-muted-foreground">
+                      {mostProductiveDay.dayName} with a {mostProductiveDay.hours.toFixed(1)}h average
+                    </p>
+                  }
+
                 </div>
                 <Badge variant="secondary">
-                  {weeklyData.reduce((max, day) => day.hours > max.hours ? day : max).day}
+                  {/* {weeklyData.reduce((max, day) => day.hours > max.hours ? day : max).dayName} */}
+                  {mostProductiveDay.day}
                 </Badge>
               </div>
             )}

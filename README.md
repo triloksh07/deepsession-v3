@@ -1,36 +1,86 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+
+-----
+
+# DeepSession - Your Personal Focus Coach
+
+[](https://opensource.org/licenses/MIT)
+
+DeepSession is a modern, AI-powered focus timer and session tracker designed to boost your productivity. Built with Next.js and TypeScript, it provides a seamless experience for managing focus sessions, tracking your work habits, and gaining insights into your productivity patterns.
+
+## Features
+
+  - **Focus Timer:** A robust, persistent timer to track your work and break intervals with precision.
+  - **Session Tracking:** Log every focus session with details like title, notes, and session type.
+  - **Authentication:** Secure sign-in with Google or GitHub, powered by Firebase Authentication.
+  - **Data Persistence:** All your session data is securely stored in Firestore and available across devices.
+  - **Productivity Analytics:** An in-depth analytics page to visualize your focus trends, including daily activity, session types, and peak productivity hours.
+  - **Cross-Tab Syncing:** Your timer and session state are automatically synchronized across all open browser tabs.
+  - **PWA Ready:** Install DeepSession as a Progressive Web App for a native-like experience and offline capabilities.
+  - **Theming:** Switch between light and dark modes to suit your preference.
+
+## Tech Stack
+
+  - **Framework:** [Next.js](https://nextjs.org/) (v15) with App Router
+  - **Language:** [TypeScript](https://www.typescriptlang.org/)
+  - **Styling:** [Tailwind CSS](https://tailwindcss.com/) (v4)
+  - **State Management:** [Zustand](https://zustand-demo.pmnd.rs/)
+  - **Backend & Authentication:** [Firebase](https://firebase.google.com/) (Firestore, Authentication)
+  - **UI Components:** [Shadcn/UI](https://ui.shadcn.com/)
+  - **Icons:** [Lucide React](https://lucide.dev/)
 
 ## Getting Started
 
-First, run the development server:
+Follow these instructions to get a local copy up and running for development and testing purposes.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+### Prerequisites
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+  - Node.js (v18.18.0 or later)
+  - `pnpm` (or your package manager of choice: `npm`, `yarn`)
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Installation & Setup
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+1.  **Clone the repository:**
 
-## Learn More
+    ```bash
+    git clone https://github.com/triloksh07/deepsession-v0.git
+    cd deepsession-v0
+    ```
 
-To learn more about Next.js, take a look at the following resources:
+2.  **Install dependencies:**
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+    ```bash
+    pnpm install
+    ```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+3.  **Set up your environment variables:**
 
-## Deploy on Vercel
+    Create a `.env.local` file in the root of the project and add your Firebase project configuration. You can get this from your Firebase project settings.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+    ```
+    NEXT_PUBLIC_API_KEY=your_api_key
+    NEXT_PUBLIC_AUTH_DOMAIN=your_auth_domain
+    NEXT_PUBLIC_PROJECT_ID=your_project_id
+    NEXT_PUBLIC_STORAGE_BUCKET=your_storage_bucket
+    NEXT_PUBLIC_MESSAGING_SENDER_ID=your_messaging_sender_id
+    NEXT_PUBLIC_APP_ID=your_app_id
+    NEXT_PUBLIC_MEASUREMENT_ID=your_measurement_id
+    ```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+4.  **Run the development server:**
+
+    ```bash
+    pnpm dev
+    ```
+
+Open [http://localhost:3000](https://www.google.com/search?q=http://localhost:3000) with your browser to see the result.
+
+## Available Scripts
+
+  - `pnpm dev`: Runs the app in development mode with Turbopack.
+  - `pnpm build`: Creates an optimized production build of the app.
+  - `pnpm start`: Starts the production server.
+  - `pnpm lint`: Runs ESLint to check for code quality and style issues.
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](./LICENSE) file for details.

@@ -1,11 +1,15 @@
 'use client'; // This component uses hooks, so it must be a Client Component
-
-
-import { collection, query, where, getDocs } from 'firebase/firestore';
+// Firebase imports for data fetching from Firestore
+import { collection, query, where, getDocs, doc, setDoc } from 'firebase/firestore';
 import { db, auth } from '@/lib/firebase';
-// import { FirestoreSession, OldSessionFormat, adaptFirestoreSessionsToAnalyticsFormat } from '@/lib/adapter'; // The new function we'll create
-
-
+import {
+  onAuthStateChanged,
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  signOut,
+  updateProfile,
+  User as FirebaseUser // Rename to avoid conflict
+} from 'firebase/auth';
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
@@ -62,52 +66,10 @@ interface User {
 // The main App component
 export default function App() {
 
-
-  // // ----------------------new------test-----------------------
-  // // Assuming you have a user object available
-  // const userId = auth.currentUser?.uid;
-  //  const [adaptedSessions, setAdaptedSessions] = useState<OldSessionFormat[]>([]);
-  //   const [isLoading, setIsLoading] = useState(true);
-
-  //   useEffect(() => {
-  //     const fetchAndAdaptData = async () => {
-  //       if (!userId) {
-  //         setIsLoading(false);
-  //         return;
-  //       }
-
-  //       // 1. Fetch from Firestore
-  //       const sessionsQuery = query(collection(db, "sessions"), where("userId", "==", userId));
-  //       const querySnapshot = await getDocs(sessionsQuery);
-  //       // const firestoreSessions = querySnapshot.docs.map(doc => doc.data());
-  //        // FIX #1: Assert the type of the data coming from Firestore
-  //       const firestoreSessions = querySnapshot.docs.map(doc => ({
-  //         id: doc.id, 
-  //         ...doc.data()
-  //       }) as FirestoreSession);
-
-  //       // 2. Adapt the data to the old format
-  //       const analyticsReadySessions = adaptFirestoreSessionsToAnalyticsFormat(firestoreSessions);
-
-  //       setAdaptedSessions(analyticsReadySessions);
-  //       setIsLoading(false);
-  //     };
-
-  //     fetchAndAdaptData();
-  //   }, [userId]);
-
-  //   if (isLoading) return <div>Loading Analytics...</div>;
-
-  // // ----------------------new------test--------end---------------
-
-
-
-  // Create the Supabase client inside the component
-  // const supabase = createClient();
   const router = useRouter();
 
   // State management (mostly the same)
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<FirebaseUser | null>(null);
   const [sessions, setSessions] = useState<Session[]>([]);
   const [goals, setGoals] = useState<Goal[]>([]);
   const [currentView, setCurrentView] = useState<'dashboard' | 'form' | 'session'>('dashboard');
@@ -115,51 +77,19 @@ export default function App() {
   const [isLoading, setIsLoading] = useState(true);
   const [authLoading, setAuthLoading] = useState(false);
 
-  // API base URL - IMPORTANT: This needs your actual project ID
-  // You should move this to your .env.local file for better security
-  // const APIc_BASE = process.env.NEXT_PUBLIC_SUPABASE_APIc_BASE;
-
-  // NEW: Modern way to handle auth state
-  // useEffect(() => {
-  //   const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-  //     if (session) {
-  //       setUser({
-  //         id: session.user.id,
-  //         email: session.user.email!,
-  //         name: session.user.user_metadata?.name,
-  //       });
-  //       setIsLoading(false);
-  //     } else {
-  //       setUser(null);
-  //       setSessions([]);
-  //       setGoals([]);
-  //       setCurrentView('dashboard');
-  //       setIsLoading(false);
-  //     }
-  //   });
-
-  //   // Check the initial session state
-  //   const getInitialSession = async () => {
-  //     const { data: { session } } = await supabase.auth.getSession();
-  //     if (session) {
-  //       setUser({
-  //         id: session.user.id,
-  //         email: session.user.email!,
-  //         name: session.user.user_metadata?.name,
-  //       });
-  //     } else {
-  //       loadLocalData();
-  //     }
-  //     setIsLoading(false);
-  //   };
-
-  //   getInitialSession();
-
-  //   return () => {
-  //     subscription.unsubscribe();
-  //   };
-  // }, [supabase, router]);
-
+  // NEW: Modern way to handle auth state changes with Firebase
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      if (currentUser) {
+        setUser(currentUser);
+      } else {
+        setUser(null);
+      }
+      setIsLoading(false); // You already have this state
+    });
+    // Cleanup subscription on unmount
+    return () => unsubscribe();
+  }, []);
 
   // Load data when user is authenticated
   useEffect(() => {
@@ -197,47 +127,59 @@ export default function App() {
     }
   };
 
-  // const getAuthHeaders = async () => {
-  //   const { data: { session } } = await supabase.auth.getSession();
-  //   return {
-  //     'Content-Type': 'application/json',
-  //     'Authorization': `Bearer ${session?.access_token}`
-  //   };
-  // };
+  const getAuthHeaders = async () => {
+    // const { data: { session } } = await supabase.auth.getSession();
+    return {
+      'Content-Type': 'application/json',
+      // 'Authorization': `Bearer ${session?.access_token}`
+    };
+  };
 
+  // Handle Login Function
   const handleLogin = async (email: string, password: string) => {
     setAuthLoading(true);
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    setAuthLoading(false);
-    if (error) return { success: false, error: error.message };
-    router.refresh(); // Refresh the page to update server component data
-    return { success: true };
+    try {
+      await signInWithEmailAndPassword(auth, email, password);
+      setAuthLoading(false);
+      return { success: true };
+    } catch (error: any) {
+      setAuthLoading(false);
+      return { success: false, error: error.message };
+    }
   };
 
+  // Handle Signup Function
   const handleSignup = async (email: string, password: string, name: string) => {
     setAuthLoading(true);
-    // Use the client-side Supabase helper for signup
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: { name },
-      },
-    });
-    setAuthLoading(false);
-    if (error) return { success: false, error: error.message };
-    router.refresh(); // Refresh the page
-    return { success: true };
+    try {
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const loggedInUser = userCredential.user;
+
+      // Update the user's profile
+      await updateProfile(loggedInUser, { displayName: name });
+
+      // (Optional but good practice) Save user to 'users' collection
+      const userRef = doc(db, "users", loggedInUser.uid);
+      await setDoc(userRef, {
+        uid: loggedInUser.uid,
+        email: loggedInUser.email,
+        displayName: name,
+      }, { merge: true });
+
+      setAuthLoading(false);
+      return { success: true };
+    } catch (error: any) {
+      setAuthLoading(false);
+      return { success: false, error: error.message };
+    }
   };
 
+  // Handle Logout Function
   const handleLogout = async () => {
-    await supabase.auth.signOut();
-    router.refresh(); // Refresh the page
+    await signOut(auth);
+    // No need to refresh, onAuthStateChanged will set user to null
   };
 
-  // All the data fetching and handling functions (loadSessions, handleGoalCreate, etc.)
-  // can remain mostly the same, as they rely on getAuthHeaders(), which we've kept.
-  // ... (All your other handler functions: loadSessions, loadGoals, handleSessionEnd, etc. go here)
   // --- PASTE YOUR OTHER HANDLER FUNCTIONS HERE ---
   const loadSessions = async () => {
     if (!user) return;
@@ -380,7 +322,7 @@ export default function App() {
           <div>
             <h1 className="text-xl font-medium">FocusFlow</h1>
             <p className="text-sm text-muted-foreground">Welcome back,</p>
-             {/* {user.name || user.email} */}
+            {/* {user.name || user.email} */}
           </div>
           <div className="flex items-center space-x-2">
             <Badge variant="secondary" className="flex items-center space-x-1">
