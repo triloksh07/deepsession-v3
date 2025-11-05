@@ -5,6 +5,7 @@ import { useSessionStore } from '@/store/timerStore'; // We need this to reset t
 
 // This is the data type we'll save to Firestore
 interface SessionData {
+  id: number;
   userId: string;
   title: string;
   type: string;
@@ -24,6 +25,7 @@ const createSessionOnFirebase = async (sessionData: Omit<SessionData, 'userId'>)
 
   const dataToSave: SessionData = {
     ...sessionData,
+    id: Date.now(), // Simple unique ID based on timestamp // (matches old app/page.tsx logic)
     userId: user.uid,
   };
 
@@ -38,15 +40,15 @@ export const useCreateSession = () => {
 
   return useMutation({
     mutationFn: createSessionOnFirebase,
-    
+
     // This is the magic!
     onSuccess: () => {
       console.log('Session saved to Firebase!');
-      
+
       // 1. Tell TanStack Query to refetch the session list
       // This will automatically update <SessionLog />
       queryClient.invalidateQueries({ queryKey: ['sessions'] });
-      
+
       // 2. Reset the client-side timer store
       endSessionOnClient();
     },

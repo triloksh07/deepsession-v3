@@ -99,7 +99,7 @@ export function Auth({ onLogin, onSignup, isLoading }: AuthProps) {
             <User className="h-8 w-8 text-primary" />
           </div>
           <div>
-            <CardTitle className="text-2xl">Welcome to FocusFlow</CardTitle>
+            <CardTitle className="text-2xl">Welcome to DeepSession</CardTitle>
             <p className="text-muted-foreground mt-2">
               Track your productivity and build better work habits
             </p>

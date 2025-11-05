@@ -2,18 +2,20 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Badge } from './ui/badge';
 import { Clock, Calendar, FileText } from 'lucide-react';
+import { Session } from '@/types'; // <-- 1. IMPORT THE TYPE
 
-interface Session {
-  id: number;
-  title: string;
-  type: string;
-  notes: string;
-  sessionTime: number;
-  breakTime: number;
-  startTime: number;
-  endTime: number;
-  date: string;
-}
+
+// interface Session {
+//   id: number;
+//   title: string;
+//   type: string;
+//   notes: string;
+//   sessionTime: number;
+//   breakTime: number;
+//   startTime: number;
+//   endTime: number;
+//   date: string;
+// }
 
 interface SessionLogProps {
   sessions: Session[];

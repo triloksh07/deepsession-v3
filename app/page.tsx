@@ -1,4 +1,5 @@
 'use client'; // This component uses hooks, so it must be a Client Component
+
 // Firebase imports for data fetching from Firestore
 import { collection, query, where, getDocs, doc, setDoc } from 'firebase/firestore';
 import { db, auth } from '@/lib/firebase';
@@ -10,8 +11,10 @@ import {
   updateProfile,
   User as FirebaseUser // Rename to avoid conflict
 } from 'firebase/auth';
+
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+// UI Components
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
@@ -24,44 +27,65 @@ import { Analytics } from '@/components/Analytics';
 import { Goals } from '@/components/Goals';
 import { ExportData } from '@/components/ExportData';
 import { Auth } from '@/components/Auth';
-import { Home, Clock, BarChart3, Target, Download, LogOut, User as UserIcon } from 'lucide-react';
+import {
+  Home,
+  Clock,
+  BarChart3,
+  Target,
+  Download,
+  LogOut,
+  User as UserIcon,
+  Loader2
+} from 'lucide-react';
 
-// zustore import (if needed)
+// Hooks & Stores
+import { useSessionsQuery } from '@/hooks/useSessionsQuery'; // <-- 1. IMPORT THE NEW HOOK
 import { useSessionStore } from '@/store/timerStore';
+import { Session, Goal } from '@/types'; // <-- 3. USE THE SHARED TYPES
+
+// --- 2. IMPORT NEW GOAL HOOKS ---
+import { useGoalsQuery } from '@/hooks/useGoalsQuery';
+import {
+  useCreateGoal,
+  useUpdateGoal,
+  useDeleteGoal,
+} from '@/hooks/useGoalMutations';
+import { handleExport } from '@/lib/exportUtils'; // <-- 1. IMPORT NEW HANDLER
+
 // imports from v0
-import TimerCard from '@/components/comp/TimerCard';
-import TodayStatsCard from '@/components/comp/TodayStats';
-import RecentSessions from '@/components/comp/RecentSession';
-import AuthComponent from "@/components/AuthComponent";
-import Link from 'next/link';
-import { useTabSync } from '@/hooks/useTabSync'; // 👈 Import the hook
-import PersistentTimer, { TimerHandle } from '@/lib/PersistentTimer';
+// import TimerCard from '@/components/comp/TimerCard';
+// import TodayStatsCard from '@/components/comp/TodayStats';
+// import RecentSessions from '@/components/comp/RecentSession';
+// import AuthComponent from "@/components/AuthComponent";
+// import Link from 'next/link';
+// import { useTabSync } from '@/hooks/useTabSync'; // 👈 Import the hook
+// import PersistentTimer, { TimerHandle } from '@/lib/PersistentTimer';
 
 // Interfaces (no changes here)
-interface Session {
-  id: number;
-  title: string;
-  type: string;
-  notes: string;
-  sessionTime: number;
-  breakTime: number;
-  startTime: number;
-  endTime: number;
-  date: string;
-}
+// interface Session {
+//   id: number;
+//   title: string;
+//   type: string;
+//   notes: string;
+//   sessionTime: number;
+//   breakTime: number;
+//   startTime: number;
+//   endTime: number;
+//   date: string;
+// }
 
-interface Goal {
-  id: string;
-  title: string;
-  description: string;
-  type: 'daily' | 'weekly' | 'monthly';
-  targetValue: number;
-  targetUnit: 'hours' | 'sessions' | 'minutes';
-  category: string;
-  isActive: boolean;
-  createdAt: string;
-  updatedAt?: string;
-}
+// interface Goal {
+//   id: string;
+//   title: string;
+//   description: string;
+//   type: 'daily' | 'weekly' | 'monthly';
+//   targetValue: number;
+//   targetUnit: 'hours' | 'sessions' | 'minutes';
+//   category: string;
+//   isActive: boolean;
+//   createdAt: string;
+//   updatedAt?: string;
+// }
 
 interface User {
   id: string;
@@ -69,26 +93,27 @@ interface User {
   name?: string;
 }
 
-// The main App component
+// --- Main App Component ---
 export default function App() {
 
-  // const sessions = useState('sessions'); // useSessionStore((state) => state.sessions)
-  const fetchSessions = useSessionStore((state) => state.startSession); // state.fetchSessions
-  const startSession = useSessionStore((state) => state.startSession);
-  const endSession = useSessionStore((state) => state.endSession);
+  const sessions = useSessionStore((state) => state.sessions)
+  // const fetchSessions = useSessionStore((state) => state.startSession); // state.fetchSessions
+  // const startSession = useSessionStore((state) => state.startSession);
+  // const endSession = useSessionStore((state) => state.endSession);
 
-  const router = useRouter();
+  // const router = useRouter();
 
   // State management (mostly the same)
   const [user, setUser] = useState<FirebaseUser | null>(null);
-  const [sessions, setSessions] = useState<Session[]>([]);
-  const [goals, setGoals] = useState<Goal[]>([]);
+  // const [sessions, setSessions] = useState<Session[]>([]);
+  // const [goals, setGoals] = useState<Goal[]>([]);
   const [currentView, setCurrentView] = useState<'dashboard' | 'form' | 'session'>('dashboard');
-  const [currentSessionData, setCurrentSessionData] = useState<any>(null);
+  // const [currentSessionData, setCurrentSessionData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [authLoading, setAuthLoading] = useState(false);
 
   // NEW: Modern way to handle auth state changes with Firebase
+  // --- Auth Listener ---
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       if (currentUser) {
@@ -103,12 +128,12 @@ export default function App() {
   }, []);
 
   // Fetch data on user login
-useEffect(() => {
-  if (user) {
-    // fetchSessions(user.uid);
-    // fetchGoals(user.uid); // (if you build this into a store)
-  }
-}, [user, fetchSessions]);
+  // useEffect(() => {
+  //   if (user) {
+  //     fetchSessions(user.uid);
+  //     // fetchGoals(user.uid); // (if you build this into a store)
+  //   }
+  // }, [user, fetchSessions]);
 
   // Load data when user is authenticated
   // useEffect(() => {
@@ -119,46 +144,48 @@ useEffect(() => {
   // }, [user]);
 
   // Save to local storage when data changes (fallback)
-  useEffect(() => {
-    if (!user) {
-      saveLocalData();
-    }
-  }, [sessions, goals, user]);
+  // useEffect(() => {
+  //   if (!user) {
+  //     saveLocalData();
+  //   }
+  // }, [sessions, goals, user]);
 
 
-  const loadLocalData = () => {
-    try {
-      const savedSessions = localStorage.getItem('focusflow-sessions');
-      const savedGoals = localStorage.getItem('focusflow-goals');
-      if (savedSessions) setSessions(JSON.parse(savedSessions));
-      if (savedGoals) setGoals(JSON.parse(savedGoals));
-    } catch (error) {
-      console.error('Error loading local data:', error);
-    }
-  };
+  // const loadLocalData = () => {
+  //   try {
+  //     const savedSessions = localStorage.getItem('focusflow-sessions');
+  //     const savedGoals = localStorage.getItem('focusflow-goals');
+  //     if (savedSessions) setSessions(JSON.parse(savedSessions));
+  //     if (savedGoals) setGoals(JSON.parse(savedGoals));
+  //   } catch (error) {
+  //     console.error('Error loading local data:', error);
+  //   }
+  // };
 
-  const saveLocalData = () => {
-    try {
-      localStorage.setItem('focusflow-sessions', JSON.stringify(sessions));
-      localStorage.setItem('focusflow-goals', JSON.stringify(goals));
-    } catch (error) {
-      console.error('Error saving local data:', error);
-    }
-  };
+  // const saveLocalData = () => {
+  //   try {
+  //     localStorage.setItem('focusflow-sessions', JSON.stringify(sessions));
+  //     localStorage.setItem('focusflow-goals', JSON.stringify(goals));
+  //   } catch (error) {
+  //     console.error('Error saving local data:', error);
+  //   }
+  // };
 
-  const getAuthHeaders = async () => {
-    // const { data: { session } } = await supabase.auth.getSession();
-    return {
-      'Content-Type': 'application/json',
-      // 'Authorization': `Bearer ${session?.access_token}`
-    };
-  };
+  // const getAuthHeaders = async () => {
+  //   // const { data: { session } } = await supabase.auth.getSession();
+  //   return {
+  //     'Content-Type': 'application/json',
+  //     // 'Authorization': `Bearer ${session?.access_token}`
+  //   };
+  // };
 
-  // Handle Login Function
+  // --- Auth Handlers ---
+
   const handleLogin = async (email: string, password: string) => {
     setAuthLoading(true);
     try {
       await signInWithEmailAndPassword(auth, email, password);
+      // onAuthStateChanged will handle the user state update
       setAuthLoading(false);
       return { success: true };
     } catch (error: any) {
@@ -167,7 +194,6 @@ useEffect(() => {
     }
   };
 
-  // Handle Signup Function
   const handleSignup = async (email: string, password: string, name: string) => {
     setAuthLoading(true);
     try {
@@ -177,7 +203,7 @@ useEffect(() => {
       // Update the user's profile
       await updateProfile(loggedInUser, { displayName: name });
 
-      // (Optional but good practice) Save user to 'users' collection
+      // (good practice) Save user to 'users' collection
       const userRef = doc(db, "users", loggedInUser.uid);
       await setDoc(userRef, {
         uid: loggedInUser.uid,
@@ -185,6 +211,7 @@ useEffect(() => {
         displayName: name,
       }, { merge: true });
 
+      // onAuthStateChanged will handle the user state
       setAuthLoading(false);
       return { success: true };
     } catch (error: any) {
@@ -193,35 +220,34 @@ useEffect(() => {
     }
   };
 
-  // Handle Logout Function
   const handleLogout = async () => {
     await signOut(auth);
     // No need to refresh, onAuthStateChanged will set user to null
   };
 
   // --- OTHER HANDLER FUNCTIONS HERE ---
-  const loadSessions = async () => {
-    if (!user) return;
-    try {
-      const headers = await getAuthHeaders();
-      const response = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_API_BASE}/sessions`, { headers });
-      if (response.ok) {
-        const data = await response.json();
-        setSessions(data.sessions || []);
-      } else console.error('Failed to load sessions:', response.statusText);
-    } catch (error) { console.error('Error loading sessions:', error); }
-  };
-  const loadGoals = async () => {
-    if (!user) return;
-    try {
-      const headers = await getAuthHeaders();
-      const response = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_API_BASE}/goals`, { headers });
-      if (response.ok) {
-        const data = await response.json();
-        setGoals(data.goals || []);
-      } else console.error('Failed to load goals:', response.statusText);
-    } catch (error) { console.error('Error loading goals:', error); }
-  };
+  // const loadSessions = async () => {
+  //   if (!user) return;
+  //   try {
+  //     const headers = await getAuthHeaders();
+  //     const response = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_API_BASE}/sessions`, { headers });
+  //     if (response.ok) {
+  //       const data = await response.json();
+  //       setSessions(data.sessions || []);
+  //     } else console.error('Failed to load sessions:', response.statusText);
+  //   } catch (error) { console.error('Error loading sessions:', error); }
+  // };
+  // const loadGoals = async () => {
+  //   if (!user) return;
+  //   try {
+  //     const headers = await getAuthHeaders();
+  //     const response = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_API_BASE}/goals`, { headers });
+  //     if (response.ok) {
+  //       const data = await response.json();
+  //       setGoals(data.goals || []);
+  //     } else console.error('Failed to load goals:', response.statusText);
+  //   } catch (error) { console.error('Error loading goals:', error); }
+  // };
   // const handleSessionEnd = async (sessionData: Session) => {
   //   try {
   //     if (user) {
@@ -240,84 +266,90 @@ useEffect(() => {
   //   setCurrentView('dashboard');
   //   setCurrentSessionData(null);
   // };
-  const handleGoalCreate = async (goalData: Omit<Goal, 'id' | 'createdAt'>) => {
-    const goal: Goal = { ...goalData, id: crypto.randomUUID(), createdAt: new Date().toISOString() };
-    try {
-      if (user) {
-        const headers = await getAuthHeaders();
-        const response = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_API_BASE}/goals`, { method: 'POST', headers, body: JSON.stringify(goal) });
-        if (response.ok) await loadGoals();
-        else {
-          console.error('Failed to save goal to server');
-          setGoals(prev => [...prev, goal]);
-        }
-      } else setGoals(prev => [...prev, goal]);
-    } catch (error) {
-      console.error('Error creating goal:', error);
-      setGoals(prev => [...prev, goal]);
-    }
-  };
-  const handleGoalUpdate = async (id: string, updates: Partial<Goal>) => {
-    try {
-      if (user) {
-        const headers = await getAuthHeaders();
-        const response = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_API_BASE}/goals/${id}`, { method: 'PUT', headers, body: JSON.stringify(updates) });
-        if (response.ok) await loadGoals();
-        else {
-          console.error('Failed to update goal on server');
-          setGoals(prev => prev.map(goal => goal.id === id ? { ...goal, ...updates } : goal));
-        }
-      } else setGoals(prev => prev.map(goal => goal.id === id ? { ...goal, ...updates } : goal));
-    } catch (error) {
-      console.error('Error updating goal:', error);
-      setGoals(prev => prev.map(goal => goal.id === id ? { ...goal, ...updates } : goal));
-    }
-  };
-  const handleGoalDelete = async (id: string) => {
-    try {
-      if (user) {
-        const headers = await getAuthHeaders();
-        const response = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_API_BASE}/goals/${id}`, { method: 'DELETE', headers });
-        if (response.ok) await loadGoals();
-        else {
-          console.error('Failed to delete goal from server');
-          setGoals(prev => prev.filter(goal => goal.id !== id));
-        }
-      } else setGoals(prev => prev.filter(goal => goal.id !== id));
-    } catch (error) {
-      console.error('Error deleting goal:', error);
-      setGoals(prev => prev.filter(goal => goal.id !== id));
-    }
-  };
-  const handleExport = async (format: 'json' | 'csv', options: any) => {
-    // This function can remain the same
-  };
+  // const handleGoalCreate = async (goalData: Omit<Goal, 'id' | 'createdAt'>) => {
+  //   const goal: Goal = { ...goalData, id: crypto.randomUUID(), createdAt: new Date().toISOString() };
+  //   try {
+  //     if (user) {
+  //       const headers = await getAuthHeaders();
+  //       const response = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_API_BASE}/goals`, { method: 'POST', headers, body: JSON.stringify(goal) });
+  //       if (response.ok) await loadGoals();
+  //       else {
+  //         console.error('Failed to save goal to server');
+  //         setGoals(prev => [...prev, goal]);
+  //       }
+  //     } else setGoals(prev => [...prev, goal]);
+  //   } catch (error) {
+  //     console.error('Error creating goal:', error);
+  //     setGoals(prev => [...prev, goal]);
+  //   }
+  // };
+  // const handleGoalUpdate = async (id: string, updates: Partial<Goal>) => {
+  //   try {
+  //     if (user) {
+  //       const headers = await getAuthHeaders();
+  //       const response = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_API_BASE}/goals/${id}`, { method: 'PUT', headers, body: JSON.stringify(updates) });
+  //       if (response.ok) await loadGoals();
+  //       else {
+  //         console.error('Failed to update goal on server');
+  //         setGoals(prev => prev.map(goal => goal.id === id ? { ...goal, ...updates } : goal));
+  //       }
+  //     } else setGoals(prev => prev.map(goal => goal.id === id ? { ...goal, ...updates } : goal));
+  //   } catch (error) {
+  //     console.error('Error updating goal:', error);
+  //     setGoals(prev => prev.map(goal => goal.id === id ? { ...goal, ...updates } : goal));
+  //   }
+  // };
+  // const handleGoalDelete = async (id: string) => {
+  //   try {
+  //     if (user) {
+  //       const headers = await getAuthHeaders();
+  //       const response = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_API_BASE}/goals/${id}`, { method: 'DELETE', headers });
+  //       if (response.ok) await loadGoals();
+  //       else {
+  //         console.error('Failed to delete goal from server');
+  //         setGoals(prev => prev.filter(goal => goal.id !== id));
+  //       }
+  //     } else setGoals(prev => prev.filter(goal => goal.id !== id));
+  //   } catch (error) {
+  //     console.error('Error deleting goal:', error);
+  //     setGoals(prev => prev.filter(goal => goal.id !== id));
+  //   }
+  // };
+  // const handleExport = async (format: 'json' | 'csv', options: any) => {
+  //   // This function can remain the same
+  // };
   // --- END OF HANDLER FUNCTIONS ---
 
 
   // --- RENDER LOGIC ---
-  // if (isLoading) {
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="text-center space-y-4">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+          <p className="text-muted-foreground">Loading DeepSession...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    // This component now works, powered by your new Firebase handlers
+    return <Auth onLogin={handleLogin} onSignup={handleSignup} isLoading={authLoading} />;
+  }
+
+  // This logic is for your new Client State store
+  // We will replace 'currentView' soon with the store's 'isActive' state
+  // if (currentView === 'session') {
   //   return (
-  //     <div className="min-h-screen flex items-center justify-center bg-background">
-  //       <div className="text-center space-y-4">
-  //         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-  //         <p className="text-muted-foreground">Loading FocusFlow...</p>
-  //       </div>
+  //     <div className="min-h-screen bg-background">
+  //       {/* <SessionTracker onSessionEnd={handleSessionEnd} sessionActive={true} onSessionStart={() => { }} /> */}
+  //       <SessionTracker />
+  //       {/* We will refactor this next to use the Zustand store */}
   //     </div>
   //   );
   // }
 
-  // if (!user) {
-  //   return <Auth onLogin={handleLogin} onSignup={handleSignup} isLoading={authLoading} />;
-  // }
-
-  if (currentView === 'session') {
-    return (
-      <div className="min-h-screen bg-background">
-        <SessionTracker onSessionEnd={handleSessionEnd} sessionActive={true} onSessionStart={() => { }} />
-      </div>
-    );
-  }
 
   // if (currentView === 'form') {
   //   return (
@@ -333,15 +365,17 @@ useEffect(() => {
   //   );
   // }
 
+  // This is the DASHBOARD
+  // --- Main Authenticated View ---
   return (
     <div className="min-h-screen bg-background">
       {/* home page nav bar */}
       <div className="border-b">
         <div className="container mx-auto px-6 py-4 flex items-center justify-between max-w-4xl">
           <div>
-            <h1 className="text-xl font-medium">FocusFlow</h1>
-            <p className="text-sm text-muted-foreground">Welcome back,</p>
-            {/* {user.name || user.email} */}
+            <h1 className="text-xl font-medium">DeepSession</h1>
+            {/* Uses the Firebase user object! */}
+            <p className="text-sm text-muted-foreground">Welcome back, {user.displayName || user.email}</p>
           </div>
           <div className="flex items-center space-x-2">
             <Badge variant="secondary" className="flex items-center space-x-1">
@@ -355,32 +389,251 @@ useEffect(() => {
           </div>
         </div>
       </div>
+
+      {/* Dashboard & Session Content */}
+      <div className="container mx-auto p-6 max-w-4xl">
+        <DashboardContent />
+      </div>
+
       {/* diff home page tabs */}
       <div className="container mx-auto p-6 max-w-4xl">
         <Tabs defaultValue="dashboard" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-5">
+          {/* <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="dashboard"><Home className="h-4 w-4 mr-2" />Dashboard</TabsTrigger>
             <TabsTrigger value="goals"><Target className="h-4 w-4 mr-2" />Goals</TabsTrigger>
             <TabsTrigger value="sessions"><Clock className="h-4 w-4 mr-2" />Sessions</TabsTrigger>
             <TabsTrigger value="analytics"><BarChart3 className="h-4 w-4 mr-2" />Analytics</TabsTrigger>
             <TabsTrigger value="export"><Download className="h-4 w-4 mr-2" />Export</TabsTrigger>
-          </TabsList>
-          <TabsContent value="dashboard"><Dashboard sessions={sessions} onStartSession={() => setCurrentView('form')} /></TabsContent>
-          <TabsContent value="goals"><Goals sessions={sessions} goals={goals} onGoalCreate={handleGoalCreate} onGoalUpdate={handleGoalUpdate} onGoalDelete={handleGoalDelete} /></TabsContent>
-          <TabsContent value="sessions">
-            <div className="flex items-center justify-between">
+          </TabsList> */}
+
+          {/* Dashboard Tab */}
+          {/* <TabsContent value="dashboard"> */}
+          {/* This component also needs session data. We'll pass the 
+              new hook's data here too.
+            */}
+          {/* <Dashboard sessions={sessions} onStartSession={() => setCurrentView('form')} /> */}
+          {/* </TabsContent> */}
+
+          {/* Goals Tab */}
+          {/* <TabsContent value="goals"> */}
+          {/* We will refactor this tab next */}
+          {/* <Goals sessions={sessions} goals={goals} onGoalCreate={handleGoalCreate} onGoalUpdate={handleGoalUpdate} onGoalDelete={handleGoalDelete} /> */}
+          {/* </TabsContent> */}
+
+          {/* --- THIS IS THE UPDATED SESSIONS TAB --- */}
+          {/* <TabsContent value="sessions"> */}
+          {/* <div className="flex items-center justify-between">
               <h2 className="text-xl font-medium">Session History</h2>
               <Button onClick={() => setCurrentView('form')}><Clock className="mr-2 h-4 w-4" />New Session</Button>
-            </div>
-            <SessionLog sessions={sessions} />
-          </TabsContent>
-          <TabsContent value="analytics">
-            {/* <DashboardPage /> */}
+            </div> */}
+          {/* <SessionLog sessions={sessions} /> */}
+          {/* 6. CALL THE HOOK AND RENDER */}
+          {/* <ConnectedSessionLog /> */}
+
+          {/* </TabsContent> */}
+          {/* Analytics & Export Tabs */}
+          {/* <TabsContent value="analytics">
             <Analytics sessions={sessions} />
           </TabsContent>
-          <TabsContent value="export"><ExportData sessions={sessions} goals={goals} onExport={handleExport} /></TabsContent>
+          <TabsContent value="export">
+            <ExportData sessions={sessions} goals={goals} onExport={handleExport} />
+          </TabsContent> */}
         </Tabs>
       </div>
     </div>
   );
 }
+
+// 7. CREATE THIS NEW HELPER COMPONENT
+// This component connects our hook to the SessionLog
+// const ConnectedSessionLog = () => {
+//   // This is where the magic happens!
+//   const { data: sessions, isLoading, isError } = useSessionsQuery();
+
+//   if (isLoading) {
+//     return (
+//       <div className="flex items-center justify-center py-10">
+//         <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+//       </div>
+//     );
+//   }
+
+//   if (isError) {
+//     return (
+//       <div className="text-center py-10 text-destructive">
+//         Error loading sessions. Please try again.
+//       </div>
+//     );
+//   }
+
+//   // We have data!
+//   return <SessionLog sessions={sessions || []} />;
+// }
+
+// --- New Helper Component to Manage Views ---
+const DashboardContent = () => {
+  // --- Client-side View State ---
+  const [currentView, setCurrentView] = useState<'dashboard' | 'form' | 'session'>('dashboard');
+  const startSession = useSessionStore((state) => state.startSession);
+  const isSessionActive = useSessionStore((state) => state.isActive);
+
+  // This effect syncs the view if a session is already active (e.g., on page load)
+  useEffect(() => {
+    if (isSessionActive) {
+      setCurrentView('session');
+    }
+  }, [isSessionActive]);
+
+  // --- View Handlers ---
+  const handleStartSessionClick = () => {
+    setCurrentView('form');
+  };
+
+  const handleFormSubmit = (sessionData: { title: string; type: string; notes: string }) => {
+    startSession(sessionData); // Start the timer store
+    setCurrentView('session'); // Switch the view
+  };
+
+  // --- View Rendering ---
+  if (currentView === 'session') {
+    return <SessionTracker />;
+  }
+
+  if (currentView === 'form') {
+    return (
+      <SessionForm
+        onSubmit={handleFormSubmit}
+        onCancel={() => setCurrentView('dashboard')}
+      />
+    );
+  }
+
+  // --- Default View: The Dashboard Tabs ---
+  // This component calls the hook once and distributes data
+  return <DashboardTabs onStartSessionClick={handleStartSessionClick} />;
+};
+
+// --- New Helper Component for Tabs ---
+const DashboardTabs = ({ onStartSessionClick }: { onStartSessionClick: () => void }) => {
+  // --- Server-side Data ---
+  // Call the hook ONCE for all tabs
+  const {
+    data: sessions,
+    isLoading: isLoadingSessions,
+    isError: isErrorSessions
+  } = useSessionsQuery();
+
+  // --- NEW: GOALS DATA ---
+  const {
+    data: goals,
+    isLoading: isLoadingGoals,
+    isError: isErrorGoals
+  } = useGoalsQuery();
+
+  // --- NEW: GOAL MUTATIONS ---
+  const createGoalMutation = useCreateGoal();
+  const updateGoalMutation = useUpdateGoal();
+  const deleteGoalMutation = useDeleteGoal();
+
+  // Combine loading/error states
+  const isLoading = isLoadingSessions || isLoadingGoals;
+  const isError = isErrorSessions || isErrorGoals;
+
+  return (
+    <Tabs defaultValue="dashboard" className="space-y-6">
+      <TabsList className="grid w-full grid-cols-5">
+        <TabsTrigger value="dashboard"><Home className="h-4 w-4 mr-2" />Dashboard</TabsTrigger>
+        <TabsTrigger value="goals"><Target className="h-4 w-4 mr-2" />Goals</TabsTrigger>
+        <TabsTrigger value="sessions"><Clock className="h-4 w-4 mr-2" />Sessions</TabsTrigger>
+        <TabsTrigger value="analytics"><BarChart3 className="h-4 w-4 mr-2" />Analytics</TabsTrigger>
+        <TabsTrigger value="export"><Download className="h-4 w-4 mr-2" />Export</TabsTrigger>
+      </TabsList>
+
+      {/* Dashboard Tab */}
+      <TabsContent value="dashboard">
+        <Dashboard
+          sessions={sessions || []}
+          onStartSession={onStartSessionClick}
+        />
+      </TabsContent>
+
+      {/* Goals Tab */}
+      <TabsContent value="goals">
+        <ConnectedDataRenderer isLoading={isLoading} isError={isError}>
+          <Goals
+            sessions={sessions || []}
+            goals={goals || []}
+            onGoalCreate={(data) => createGoalMutation.mutate(data)}
+            onGoalUpdate={(id, updates) => updateGoalMutation.mutate({ id, updates })}
+            onGoalDelete={(id) => deleteGoalMutation.mutate(id)}
+          />
+        </ConnectedDataRenderer>
+      </TabsContent>
+
+      {/* Sessions Tab */}
+      <TabsContent value="sessions">
+        <div className="flex items-center justify-between">
+          <h2 className="text-xl font-medium">Session History</h2>
+          <Button onClick={onStartSessionClick}>
+            <Clock className="mr-2 h-4 w-4" />New Session
+          </Button>
+        </div>
+        <ConnectedDataRenderer isLoading={isLoading} isError={isError}>
+          <SessionLog sessions={sessions || []} />
+        </ConnectedDataRenderer>
+      </TabsContent>
+
+      {/* Analytics Tab */}
+      <TabsContent value="analytics">
+        <ConnectedDataRenderer isLoading={isLoading} isError={isError}>
+          <Analytics sessions={sessions || []} />
+        </ConnectedDataRenderer>
+      </TabsContent>
+
+      {/* Export Tab */}
+      {/* Note: You can now pass `goals={goals || []}` to ExportData as well */}
+      <TabsContent value="export">
+        <ExportData
+          sessions={sessions || []}
+          goals={goals | []}
+          onExport={(format, options) => {
+            handleExport({
+              format,
+              options,
+              sessions: sessions || [],
+              goals: goals || [],
+            });
+          }} />
+      </TabsContent>
+    </Tabs>
+  );
+};
+
+// --- Generic Helper for Loading/Error ---
+const ConnectedDataRenderer = ({
+  isLoading,
+  isError,
+  children,
+}: {
+  isLoading: boolean;
+  isError: boolean;
+  children: React.ReactNode;
+}) => {
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-10">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="text-center py-10 text-destructive">
+        Error loading data. Please try again.
+      </div>
+    );
+  }
+
+  return <>{children}</>;
+};
