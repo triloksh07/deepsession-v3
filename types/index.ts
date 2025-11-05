@@ -1,14 +1,19 @@
 // This is the data structure our app will use
 // Based on components/SessionLog.tsx
 export interface Session {
-  id: number; // The numeric ID we just added
+  id: string | number; // Allow both string (v0) and number (v2)
   title: string;
   type: string;
   notes: string;
   sessionTime: number;
   breakTime: number;
-  startTime: number; // This is a timestamp
-  endTime: number; // This is a timestamp
+
+  // --- THE KEY CHANGE ---
+  // We'll use JS timestamps (numbers) in our UI,
+  // but they will be named after the v0 fields.
+  started_at: number; // JS timestamp (number), NOT a Firestore Timestamp
+  ended_at: number; // JS timestamp (number)
+
   date: string;
 }
 

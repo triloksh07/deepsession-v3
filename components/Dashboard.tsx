@@ -3,18 +3,19 @@ import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 import { Play, Clock, Target, TrendingUp } from 'lucide-react';
+import { Session } from '@/types'; // <-- 1. IMPORT THE TYPE
 
-interface Session {
-  id: number;
-  title: string;
-  type: string;
-  notes: string;
-  sessionTime: number;
-  breakTime: number;
-  startTime: number;
-  endTime: number;
-  date: string;
-}
+// interface Session {
+//   id: number;
+//   title: string;
+//   type: string;
+//   notes: string;
+//   sessionTime: number;
+//   breakTime: number;
+//   started_at: number;
+//   ended_at: number;
+//   date: string;
+// }
 
 interface DashboardProps {
   sessions: Session[];
@@ -170,7 +171,7 @@ export function Dashboard({ sessions, onStartSession }: DashboardProps) {
                     <div className="flex-1">
                       <h4 className="font-medium">{session.title}</h4>
                       <p className="text-sm text-muted-foreground">
-                        {formatTime(session.sessionTime)} • {new Date(session.startTime).toLocaleDateString()}
+                        {formatTime(session.sessionTime)} • {new Date(session.started_at).toLocaleDateString()}
                       </p>
                     </div>
                     <Badge className={getTypeColor(session.type)}>

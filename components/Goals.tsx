@@ -43,9 +43,9 @@ interface Session {
 
 interface GoalsProps {
   sessions: Session[];
-  onGoalCreate: (goal: Omit<Goal, 'id' | 'createdAt'>) => Promise<void>;
-  onGoalUpdate: (id: string, goal: Partial<Goal>) => Promise<void>;
-  onGoalDelete: (id: string) => Promise<void>;
+  onGoalCreate: (goal: Omit<Goal, 'id' | 'createdAt'>) => void;
+  onGoalUpdate: (id: string, goal: Partial<Goal>) => void;
+  onGoalDelete: (id: string) => void;
   goals: Goal[];
 }
 

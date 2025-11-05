@@ -12,8 +12,8 @@ import { Session } from '@/types'; // <-- 1. IMPORT THE TYPE
 //   notes: string;
 //   sessionTime: number;
 //   breakTime: number;
-//   startTime: number;
-//   endTime: number;
+//   started_at: number;
+//   ended_at: number;
 //   date: string;
 // }
 
@@ -107,7 +107,7 @@ export function SessionLog({ sessions }: SessionLogProps) {
           
           <div className="space-y-3">
             {groupedSessions[date]
-              .sort((a, b) => b.startTime - a.startTime)
+              .sort((a, b) => b.started_at - a.started_at)
               .map((session) => (
                 <Card key={session.id} className="transition-shadow hover:shadow-md">
                   <CardContent className="p-4">
@@ -115,7 +115,7 @@ export function SessionLog({ sessions }: SessionLogProps) {
                       <div className="flex-1">
                         <h3 className="font-medium mb-1">{session.title}</h3>
                         <div className="flex items-center space-x-2 text-muted-foreground">
-                          <span>{formatDateTime(session.startTime)} - {formatDateTime(session.endTime)}</span>
+                          <span>{formatDateTime(session.started_at)} - {formatDateTime(session.ended_at)}</span>
                         </div>
                       </div>
                       <Badge className={getTypeColor(session.type)}>

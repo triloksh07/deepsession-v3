@@ -41,6 +41,7 @@ interface ExportDataProps {
   sessions: Session[];
   goals: Goal[];
   onExport: (format: 'json' | 'csv', options: ExportOptions) => Promise<void>;
+  // onExport: (format: 'json' | 'csv', options: ExportOptions) => void;
 }
 
 interface ExportOptions {

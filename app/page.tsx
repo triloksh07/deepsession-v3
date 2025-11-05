@@ -96,7 +96,7 @@ interface User {
 // --- Main App Component ---
 export default function App() {
 
-  const sessions = useSessionStore((state) => state.sessions)
+  // const sessions = useSessionStore((state) => state.sessions)
   // const fetchSessions = useSessionStore((state) => state.startSession); // state.fetchSessions
   // const startSession = useSessionStore((state) => state.startSession);
   // const endSession = useSessionStore((state) => state.endSession);
@@ -392,7 +392,7 @@ export default function App() {
 
       {/* Dashboard & Session Content */}
       <div className="container mx-auto p-6 max-w-4xl">
-        <DashboardContent />
+        <DashboardContent user={user} />
       </div>
 
       {/* diff home page tabs */}
@@ -471,18 +471,30 @@ export default function App() {
 // }
 
 // --- New Helper Component to Manage Views ---
-const DashboardContent = () => {
+const DashboardContent = ({ user }: { user: FirebaseUser }) => {
   // --- Client-side View State ---
   const [currentView, setCurrentView] = useState<'dashboard' | 'form' | 'session'>('dashboard');
   const startSession = useSessionStore((state) => state.startSession);
   const isSessionActive = useSessionStore((state) => state.isActive);
 
   // This effect syncs the view if a session is already active (e.g., on page load)
+  // useEffect(() => {
+  //   if (isSessionActive) {
+  //     setCurrentView('session');
+  //   }
+  // }, [isSessionActive]);
+
+  // This is the NEW, FIXED effect
   useEffect(() => {
     if (isSessionActive) {
+      // If a session is active, force the view to the tracker
       setCurrentView('session');
+    } else if (currentView === 'session' && !isSessionActive) {
+      // If we *were* in the session view, but it just ended,
+      // automatically go back to the dashboard.
+      setCurrentView('dashboard');
     }
-  }, [isSessionActive]);
+  }, [isSessionActive, currentView]); // Add currentView to the dependency array
 
   // --- View Handlers ---
   const handleStartSessionClick = () => {
@@ -510,25 +522,35 @@ const DashboardContent = () => {
 
   // --- Default View: The Dashboard Tabs ---
   // This component calls the hook once and distributes data
-  return <DashboardTabs onStartSessionClick={handleStartSessionClick} />;
+  return (
+    <DashboardTabs
+      onStartSessionClick={handleStartSessionClick}
+      userId={user.uid} // <-- Pass the userId to the next component
+    />
+  );
 };
 
+// --- UPDATED DashboardContent ---
+// It now receives the user object as a prop
+
 // --- New Helper Component for Tabs ---
-const DashboardTabs = ({ onStartSessionClick }: { onStartSessionClick: () => void }) => {
+const DashboardTabs = ({ onStartSessionClick, userId }: { onStartSessionClick: () => void; userId: string; }) => {
   // --- Server-side Data ---
   // Call the hook ONCE for all tabs
   const {
     data: sessions,
     isLoading: isLoadingSessions,
-    isError: isErrorSessions
-  } = useSessionsQuery();
+    isError: isErrorSessions,
+    error: sessionsError // <-- GET THIS
+  } = useSessionsQuery(userId);
 
   // --- NEW: GOALS DATA ---
   const {
     data: goals,
     isLoading: isLoadingGoals,
-    isError: isErrorGoals
-  } = useGoalsQuery();
+    isError: isErrorGoals,
+    error: goalsError // <-- GET THIS
+  } = useGoalsQuery(userId);
 
   // --- NEW: GOAL MUTATIONS ---
   const createGoalMutation = useCreateGoal();
@@ -538,6 +560,7 @@ const DashboardTabs = ({ onStartSessionClick }: { onStartSessionClick: () => voi
   // Combine loading/error states
   const isLoading = isLoadingSessions || isLoadingGoals;
   const isError = isErrorSessions || isErrorGoals;
+  const error = sessionsError || goalsError; // Get the first error
 
   return (
     <Tabs defaultValue="dashboard" className="space-y-6">
@@ -559,7 +582,7 @@ const DashboardTabs = ({ onStartSessionClick }: { onStartSessionClick: () => voi
 
       {/* Goals Tab */}
       <TabsContent value="goals">
-        <ConnectedDataRenderer isLoading={isLoading} isError={isError}>
+        <ConnectedDataRenderer isLoading={isLoading} isError={isError} error={error}>
           <Goals
             sessions={sessions || []}
             goals={goals || []}
@@ -578,14 +601,14 @@ const DashboardTabs = ({ onStartSessionClick }: { onStartSessionClick: () => voi
             <Clock className="mr-2 h-4 w-4" />New Session
           </Button>
         </div>
-        <ConnectedDataRenderer isLoading={isLoading} isError={isError}>
+        <ConnectedDataRenderer isLoading={isLoading} isError={isError} error={error}>
           <SessionLog sessions={sessions || []} />
         </ConnectedDataRenderer>
       </TabsContent>
 
       {/* Analytics Tab */}
       <TabsContent value="analytics">
-        <ConnectedDataRenderer isLoading={isLoading} isError={isError}>
+        <ConnectedDataRenderer isLoading={isLoading} isError={isError} error={error}>
           <Analytics sessions={sessions || []} />
         </ConnectedDataRenderer>
       </TabsContent>
@@ -595,8 +618,8 @@ const DashboardTabs = ({ onStartSessionClick }: { onStartSessionClick: () => voi
       <TabsContent value="export">
         <ExportData
           sessions={sessions || []}
-          goals={goals | []}
-          onExport={(format, options) => {
+          goals={goals || []}
+          onExport={async (format, options) => {
             handleExport({
               format,
               options,
@@ -613,10 +636,12 @@ const DashboardTabs = ({ onStartSessionClick }: { onStartSessionClick: () => voi
 const ConnectedDataRenderer = ({
   isLoading,
   isError,
+  error, // <-- 4. RECEIVE THE ERROR PROP
   children,
 }: {
   isLoading: boolean;
   isError: boolean;
+  error: Error | null; // <-- 5. ADD THE TYPE
   children: React.ReactNode;
 }) => {
   if (isLoading) {
@@ -627,10 +652,20 @@ const ConnectedDataRenderer = ({
     );
   }
 
+  // --- 6. RENDER THE ACTUAL ERROR ---
   if (isError) {
+    // Also log it to the console for good measure
+    if (error) console.error("TanStack Query Error:", error);
+
     return (
       <div className="text-center py-10 text-destructive">
-        Error loading data. Please try again.
+        <p>Error loading data. Please try again.</p>
+        {/* This will show us the error message! */}
+        {error && (
+          <p className="text-xs mt-2 font-mono">
+            <strong>Debug Info:</strong> {error.message}
+          </p>
+        )}
       </div>
     );
   }
