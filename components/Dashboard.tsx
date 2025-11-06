@@ -4,18 +4,7 @@ import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 import { Play, Clock, Target, TrendingUp } from 'lucide-react';
 import { Session } from '@/types'; // <-- 1. IMPORT THE TYPE
-
-// interface Session {
-//   id: number;
-//   title: string;
-//   type: string;
-//   notes: string;
-//   sessionTime: number;
-//   breakTime: number;
-//   started_at: number;
-//   ended_at: number;
-//   date: string;
-// }
+import { FormatCalculatedDuration } from '@/lib/timeUtils';
 
 interface DashboardProps {
   sessions: Session[];
@@ -25,31 +14,32 @@ interface DashboardProps {
 export function Dashboard({ sessions, onStartSession }: DashboardProps) {
   const today = new Date().toISOString().split('T')[0];
   const todaySessions = sessions.filter(session => session.date === today);
-  
+
   // Calculate today's stats
-  const totalSessionTime = todaySessions.reduce((acc, session) => acc + session.sessionTime, 0);
-  const totalBreakTime = todaySessions.reduce((acc, session) => acc + session.breakTime, 0);
+  const totalFocusTime = todaySessions.reduce((acc, session) => acc + (session.sessionTime / 1000), 0);
+  // (session.sessionTime / 1000)
+  const totalBreakTime = todaySessions.reduce((acc, session) => acc + (session.breakTime / 1000), 0);
   const sessionCount = todaySessions.length;
-  
+
   // Calculate this week's stats
   const weekStart = new Date();
   weekStart.setDate(weekStart.getDate() - weekStart.getDay());
   const weekStartString = weekStart.toISOString().split('T')[0];
-  
+
   const thisWeekSessions = sessions.filter(session => session.date >= weekStartString);
-  const weeklySessionTime = thisWeekSessions.reduce((acc, session) => acc + session.sessionTime, 0);
+  const weeklySessionTime = thisWeekSessions.reduce((acc, session) => acc + (session.sessionTime / 1000), 0);
   const weeklySessionCount = thisWeekSessions.length;
-  
+
   // Get session type breakdown for today
   const typeBreakdown = todaySessions.reduce((acc: { [key: string]: number }, session) => {
     acc[session.type] = (acc[session.type] || 0) + session.sessionTime;
     return acc;
   }, {});
-  
+
   const formatTime = (seconds: number) => {
     const hours = Math.floor(seconds / 3600);
     const minutes = Math.floor((seconds % 3600) / 60);
-    
+
     if (hours > 0) {
       return `${hours}h ${minutes}m`;
     }
@@ -68,9 +58,9 @@ export function Dashboard({ sessions, onStartSession }: DashboardProps) {
     return colors[type] || colors['Other'];
   };
 
-  const recentSessions = sessions
-    .slice(-3)
-    .reverse();
+  const recentSessions = [...sessions]
+    .sort((a, b) => b.startTime - a.startTime) // sort by latest startTime
+    .slice(0, 3); // take top 3
 
   return (
     <div className="space-y-6">
@@ -78,8 +68,8 @@ export function Dashboard({ sessions, onStartSession }: DashboardProps) {
       <div className="text-center space-y-4">
         <h1 className="text-3xl font-medium">FocusFlow</h1>
         <p className="text-muted-foreground">Track your productivity and build better work habits</p>
-        
-        <Button 
+
+        <Button
           onClick={onStartSession}
           size="lg"
           className="px-8"
@@ -110,7 +100,7 @@ export function Dashboard({ sessions, onStartSession }: DashboardProps) {
             <Clock className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{formatTime(totalSessionTime)}</div>
+            <div className="text-2xl font-bold">{formatTime(totalFocusTime)}</div>
             <p className="text-xs text-muted-foreground">
               {totalBreakTime > 0 && `+${formatTime(totalBreakTime)} breaks`}
             </p>
@@ -132,7 +122,7 @@ export function Dashboard({ sessions, onStartSession }: DashboardProps) {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-  
+
         {/* Today's Activity Breakdown */}
         {Object.keys(typeBreakdown).length > 0 && (
           <Card>
@@ -149,7 +139,7 @@ export function Dashboard({ sessions, onStartSession }: DashboardProps) {
                         {type}
                       </Badge>
                       <span className="text-sm text-muted-foreground">
-                        {formatTime(time)}
+                        {FormatCalculatedDuration(0, time)}
                       </span>
                     </div>
                   ))}
@@ -171,7 +161,7 @@ export function Dashboard({ sessions, onStartSession }: DashboardProps) {
                     <div className="flex-1">
                       <h4 className="font-medium">{session.title}</h4>
                       <p className="text-sm text-muted-foreground">
-                        {formatTime(session.sessionTime)} • {new Date(session.startTime).toLocaleDateString()}
+                        {formatTime(session.sessionTime / 1000)} • {new Date(session.startTime).toLocaleDateString()}
                       </p>
                     </div>
                     <Badge className={getTypeColor(session.type)}>
@@ -190,7 +180,7 @@ export function Dashboard({ sessions, onStartSession }: DashboardProps) {
             <Clock className="mx-auto h-12 w-12 mb-4 text-muted-foreground opacity-50" />
             <h3 className="font-medium mb-2">Ready to start your first session?</h3>
             <p className="text-muted-foreground mb-4">
-              Track your focus time and build productive habits with FocusFlow.
+              Track your focus time and build productive habits with DeepSession.
             </p>
             <Button onClick={onStartSession}>
               <Play className="mr-2 h-4 w-4" />

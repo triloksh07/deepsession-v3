@@ -23,9 +23,10 @@ interface SessionLogProps {
 }
 
 export function SessionLog({ sessions }: SessionLogProps) {
-  const formatTime = (seconds: number) => {
-    const hours = Math.floor(seconds / 3600);
-    const minutes = Math.floor((seconds % 3600) / 60);
+  const formatTime = (milliseconds: number) => {
+    const totalSeconds = Math.floor(milliseconds / 1000);
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
 
     if (hours > 0) {
       return `${hours}h ${minutes}m`;
@@ -114,7 +115,7 @@ export function SessionLog({ sessions }: SessionLogProps) {
                 // --- 4. GET THE LABEL ---
                 const typeInfo = getSessionTypeInfo(session.type);
                 return (
-                  <Card key={session.id} className="transition-shadow hover:shadow-md">
+                  <Card key={`${session.id}-${session.startTime}`} className="transition-shadow hover:shadow-md">
                     <CardContent className="p-4">
                       <div className="flex items-start justify-between mb-3">
                         <div className="flex-1">
@@ -126,8 +127,8 @@ export function SessionLog({ sessions }: SessionLogProps) {
                         {/* --- 5. USE THE LABEL IN THE BADGE --- */}
                         <Badge className={getTypeColor(session.type)}>
                           {/* getTypeColor(session.type) */}
-                          {/* {typeInfo.label} */}
-                          {getSessionLabel(session.type)}
+                          {typeInfo.label}
+                          {/* {getSessionLabel(session.type)} */}
                         </Badge>
                       </div>
 

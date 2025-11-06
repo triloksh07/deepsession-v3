@@ -293,7 +293,6 @@ export function Analytics({ sessions }: AnalyticsProps) {
       {/* Header with time range selector */}
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-medium">Analytics & Insights</h2>
-        <button><Link href="/">Home</Link></button>
         <Select value={timeRange} onValueChange={(value: 'week' | 'month' | 'year') => setTimeRange(value)}>
           <SelectTrigger className="w-32">
             <SelectValue />

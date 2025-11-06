@@ -27,4 +27,5 @@ export interface Goal {
   category: string; // e.g., 'Coding', 'Learning', or 'All'
   isActive: boolean;
   createdAt: string; // ISO string
+  updatedAt?: string; // ISO string (optional)
 }

@@ -28,7 +28,7 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-  allowedDevOrigins: ['local-origin.dev', '*.local-origin.dev', "10.214.175.151"],
+  allowedDevOrigins: ['local-origin.dev', '*.local-origin.dev', "10.214.175.151", "192.168.0.105"],
   // Add other Next.js configurations here
 
 };

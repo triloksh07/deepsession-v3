@@ -7,39 +7,40 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Progress } from './ui/progress';
 import { Badge } from './ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from './ui/dialog';
-import { 
-  Target, 
-  Plus, 
-  Edit, 
-  Trash2, 
-  Clock, 
+import {
+  Target,
+  Plus,
+  Edit,
+  Trash2,
+  Clock,
   Calendar,
   CheckCircle,
   TrendingUp,
   Zap
 } from 'lucide-react';
+import { Session, Goal } from '@/types';
 
-interface Goal {
-  id: string;
-  title: string;
-  description: string;
-  type: 'daily' | 'weekly' | 'monthly';
-  targetValue: number;
-  targetUnit: 'hours' | 'sessions' | 'minutes';
-  category: string;
-  isActive: boolean;
-  createdAt: string;
-  updatedAt?: string;
-}
+// interface Goal {
+//   id: string;
+//   title: string;
+//   description: string;
+//   type: 'daily' | 'weekly' | 'monthly';
+//   targetValue: number;
+//   targetUnit: 'hours' | 'sessions' | 'minutes';
+//   category: string;
+//   isActive: boolean;
+//   createdAt: string;
+//   updatedAt?: string;
+// }
 
-interface Session {
-  id: number;
-  title: string;
-  type: string;
-  sessionTime: number;
-  breakTime: number;
-  date: string;
-}
+// interface Session {
+//   id: number;
+//   title: string;
+//   type: string;
+//   sessionTime: number;
+//   breakTime: number;
+//   date: string;
+// }
 
 interface GoalsProps {
   sessions: Session[];
@@ -79,7 +80,7 @@ export function Goals({ sessions, onGoalCreate, onGoalUpdate, onGoalDelete, goal
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     try {
       if (editingGoal) {
         await onGoalUpdate(editingGoal.id, {
@@ -89,7 +90,7 @@ export function Goals({ sessions, onGoalCreate, onGoalUpdate, onGoalDelete, goal
       } else {
         await onGoalCreate(formData);
       }
-      
+
       setIsCreateDialogOpen(false);
       resetForm();
     } catch (error) {
@@ -124,7 +125,7 @@ export function Goals({ sessions, onGoalCreate, onGoalUpdate, onGoalDelete, goal
   const calculateProgress = (goal: Goal) => {
     const now = new Date();
     let startDate: Date;
-    
+
     switch (goal.type) {
       case 'daily':
         startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -137,15 +138,15 @@ export function Goals({ sessions, onGoalCreate, onGoalUpdate, onGoalDelete, goal
         startDate = new Date(now.getFullYear(), now.getMonth(), 1);
         break;
     }
-    
+
     const relevantSessions = sessions.filter(session => {
       const sessionDate = new Date(session.date);
       const matchesCategory = goal.category === 'All' || session.type === goal.category;
       return sessionDate >= startDate && matchesCategory;
     });
-    
+
     let currentValue = 0;
-    
+
     switch (goal.targetUnit) {
       case 'hours':
         currentValue = relevantSessions.reduce((acc, session) => acc + session.sessionTime, 0) / 3600;
@@ -157,10 +158,10 @@ export function Goals({ sessions, onGoalCreate, onGoalUpdate, onGoalDelete, goal
         currentValue = relevantSessions.length;
         break;
     }
-    
+
     const percentage = Math.min((currentValue / goal.targetValue) * 100, 100);
     const isCompleted = currentValue >= goal.targetValue;
-    
+
     return {
       currentValue: Math.round(currentValue * 100) / 100,
       percentage: Math.round(percentage),
@@ -199,7 +200,7 @@ export function Goals({ sessions, onGoalCreate, onGoalUpdate, onGoalDelete, goal
           <h2 className="text-xl font-medium">Goals & Targets</h2>
           <p className="text-muted-foreground">Set and track your productivity goals</p>
         </div>
-        
+
         <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
           <DialogTrigger asChild>
             <Button onClick={resetForm}>
@@ -207,14 +208,14 @@ export function Goals({ sessions, onGoalCreate, onGoalUpdate, onGoalDelete, goal
               New Goal
             </Button>
           </DialogTrigger>
-          
+
           <DialogContent className="sm:max-w-md">
             <DialogHeader>
               <DialogTitle>
                 {editingGoal ? 'Edit Goal' : 'Create New Goal'}
               </DialogTitle>
             </DialogHeader>
-            
+
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="title">Goal Title *</Label>
@@ -240,7 +241,7 @@ export function Goals({ sessions, onGoalCreate, onGoalUpdate, onGoalDelete, goal
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="type">Time Period</Label>
-                  <Select value={formData.type} onValueChange={(value: 'daily' | 'weekly' | 'monthly') => 
+                  <Select value={formData.type} onValueChange={(value: 'daily' | 'weekly' | 'monthly') =>
                     setFormData(prev => ({ ...prev, type: value }))
                   }>
                     <SelectTrigger>
@@ -256,7 +257,7 @@ export function Goals({ sessions, onGoalCreate, onGoalUpdate, onGoalDelete, goal
 
                 <div className="space-y-2">
                   <Label htmlFor="category">Category</Label>
-                  <Select value={formData.category} onValueChange={(value) => 
+                  <Select value={formData.category} onValueChange={(value) =>
                     setFormData(prev => ({ ...prev, category: value }))
                   }>
                     <SelectTrigger>
@@ -280,9 +281,9 @@ export function Goals({ sessions, onGoalCreate, onGoalUpdate, onGoalDelete, goal
                     min="1"
                     step="0.5"
                     value={formData.targetValue}
-                    onChange={(e) => setFormData(prev => ({ 
-                      ...prev, 
-                      targetValue: parseFloat(e.target.value) || 1 
+                    onChange={(e) => setFormData(prev => ({
+                      ...prev,
+                      targetValue: parseFloat(e.target.value) || 1
                     }))}
                     required
                   />
@@ -290,7 +291,7 @@ export function Goals({ sessions, onGoalCreate, onGoalUpdate, onGoalDelete, goal
 
                 <div className="space-y-2">
                   <Label htmlFor="targetUnit">Unit</Label>
-                  <Select value={formData.targetUnit} onValueChange={(value: 'hours' | 'sessions' | 'minutes') => 
+                  <Select value={formData.targetUnit} onValueChange={(value: 'hours' | 'sessions' | 'minutes') =>
                     setFormData(prev => ({ ...prev, targetUnit: value }))
                   }>
                     <SelectTrigger>
@@ -309,9 +310,9 @@ export function Goals({ sessions, onGoalCreate, onGoalUpdate, onGoalDelete, goal
                 <Button type="submit" className="flex-1">
                   {editingGoal ? 'Update Goal' : 'Create Goal'}
                 </Button>
-                <Button 
-                  type="button" 
-                  variant="outline" 
+                <Button
+                  type="button"
+                  variant="outline"
                   onClick={() => setIsCreateDialogOpen(false)}
                 >
                   Cancel
@@ -381,11 +382,10 @@ export function Goals({ sessions, onGoalCreate, onGoalUpdate, onGoalDelete, goal
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           {activeGoals.map((goal) => {
             const progress = calculateProgress(goal);
-            
+
             return (
-              <Card key={goal.id} className={`transition-shadow hover:shadow-md ${
-                progress.isCompleted ? 'ring-2 ring-green-200 bg-green-50/30' : ''
-              }`}>
+              <Card key={goal.id} className={`transition-shadow hover:shadow-md ${progress.isCompleted ? 'ring-2 ring-green-200 bg-green-50/30' : ''
+                }`}>
                 <CardHeader className="pb-3">
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
@@ -399,13 +399,13 @@ export function Goals({ sessions, onGoalCreate, onGoalUpdate, onGoalDelete, goal
                         <p className="text-sm text-muted-foreground">{goal.description}</p>
                       )}
                     </div>
-                    
+
                     <div className="flex items-center space-x-2">
                       <Badge className={getGoalTypeColor(goal.type)}>
                         {getGoalIcon(goal.type)}
                         <span className="ml-1 capitalize">{goal.type}</span>
                       </Badge>
-                      
+
                       <div className="flex space-x-1">
                         <Button
                           variant="ghost"
@@ -425,7 +425,7 @@ export function Goals({ sessions, onGoalCreate, onGoalUpdate, onGoalDelete, goal
                     </div>
                   </div>
                 </CardHeader>
-                
+
                 <CardContent className="space-y-4">
                   {/* Progress Bar */}
                   <div className="space-y-2">
