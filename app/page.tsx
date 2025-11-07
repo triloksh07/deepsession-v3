@@ -19,6 +19,7 @@ import {
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 // UI Components
+import { Navbar } from '@/components/comp/Navbar';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
@@ -45,7 +46,7 @@ import {
 // Hooks & Stores
 // import { useSessionStore } from '@/store/timerStore';
 import { useSessionStore } from '@/store/sessionStore';
-import { Session, Goal } from '@/types'; // <-- 3. USE THE SHARED TYPES
+import { Session, Goal, User } from '@/types'; // <-- 3. USE THE SHARED TYPES
 import { useSessionsQuery } from '@/hooks/useSessionsQuery'; // <-- 1. IMPORT THE NEW HOOK
 import { useSyncActiveSession } from '@/hooks/useSyncActiveSession'; // --- ADD ---
 // import { useStartSessionMutation } from '@/hooks/useTimerMutations'; // --- ADD ---
@@ -67,38 +68,6 @@ import { handleExport } from '@/lib/exportUtils'; // <-- 1. IMPORT NEW HANDLER
 // import Link from 'next/link';
 // import { useTabSync } from '@/hooks/useTabSync'; // 👈 Import the hook
 // import PersistentTimer, { TimerHandle } from '@/lib/PersistentTimer';
-
-// Interfaces (no changes here)
-// interface Session {
-//   id: number;
-//   title: string;
-//   type: string;
-//   notes: string;
-//   sessionTime: number;
-//   breakTime: number;
-//   startTime: number;
-//   endTime: number;
-//   date: string;
-// }
-
-// interface Goal {
-//   id: string;
-//   title: string;
-//   description: string;
-//   type: 'daily' | 'weekly' | 'monthly';
-//   targetValue: number;
-//   targetUnit: 'hours' | 'sessions' | 'minutes';
-//   category: string;
-//   isActive: boolean;
-//   createdAt: string;
-//   updatedAt?: string;
-// }
-
-interface User {
-  id: string;
-  email: string;
-  name?: string;
-}
 
 // --- CREATE THE PROVIDER INSTANCES ---
 const googleProvider = new GoogleAuthProvider();
@@ -442,6 +411,7 @@ export default function App() {
   // --- Main Authenticated View ---
   return (
     <div className="min-h-screen bg-background">
+      <Navbar />
       {/* home page nav bar */}
       <div className="border-b">
         <div className="container mx-auto px-6 py-4 flex items-center justify-between max-w-4xl">
