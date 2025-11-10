@@ -6,12 +6,13 @@ import { Label } from './ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Textarea } from './ui/textarea';
 import { DEFAULT_SESSION_TYPES } from '@/config/sessionTypes.config';
+import { Session } from '@/types/typeDeclaration';
 
 interface SessionFormProps {
   onSubmit: (sessionData: any) => void;
   onCancel: () => void;
 }
- 
+
 export function SessionForm({ onSubmit, onCancel }: SessionFormProps) {
   const [title, setTitle] = useState('');
   const [type, setType] = useState('');
@@ -66,7 +67,7 @@ export function SessionForm({ onSubmit, onCancel }: SessionFormProps) {
                   <SelectValue placeholder="Select session type" />
                 </SelectTrigger>
                 <SelectContent>
-                   {/* Map over the config file */}
+                  {/* Map over the config file */}
                   {DEFAULT_SESSION_TYPES.map((sessionType) => (
                     <SelectItem key={sessionType.id} value={sessionType.id}>
                       {sessionType.label} {/* Show the Label, save the ID */}
