@@ -1,75 +1,58 @@
-## **DeepSession v2**
-DeepSession v2 is a modern, offline-first, and cross-device-syncing web application for tracking and analyzing deep work sessions.
 
-This project evolves the v0 (MVP) architecture from a single-device, localStorage-based timer to a robust, scalable, and real-time application. It introduces a sophisticated state management system that cleanly separates server state (TanStack Query) from live client state (Zustand) and syncs them via Firestore.
+-----
+
+# DeepSession v2
+
+A modern, offline-first web application designed to help you track and analyze your deep work and focus sessions. Built with a robust architecture for real-time, cross-device synchronization.
+
+This project is the successor to `v0`, migrating from a simple MVP to a scalable, professional-grade application.
 
 ## ✨ Core Features
 
-- True Offline-First Timer: Start, pause, break, and end sessions with zero internet connection. All operations are written to Firebase's local cache and sync automatically when you reconnect [cite: lib/firebase.js, store/sessionStore.ts].
+  * **Offline-First:** Start, stop, and manage your timer with zero internet connection. All data syncs automatically when you're back online.
+  * **Real-Time Cross-Device Sync:** Start a timer on your desktop and see it ticking live on your phone.
+  * **Robust Session Timer:** The timer survives browser reloads and tab closures, using `v0` timer engine (`PersistentTimer.ts`).
+  * **Secure Authentication:** Sign in with Email/Password, Google, or GitHub.
+  * **Session History & Data Adapter:** A detailed log of all past sessions. The app correctly adapts and displays data from your `v0` database.
+  * **Goal Tracking:** Create, track, and manage your daily, weekly, or monthly focus goals.
+  * **Data Analytics:** Visualize your productivity with charts and graphs.
+  * **Data Export:** Download your session and goal data as JSON or CSV.
 
-- Real-Time Cross-Device Sync: Start a timer on your desktop and watch it tick live on your phone. The active session is synced in real-time across all your logged-in devices [cite: hooks/useSyncActiveSession.ts].
-
-- Robust Timer Engine: Built on the high-performance requestAnimationFrame-based timer from v0 (lib/PersistentTimer.ts) to ensure accurate time tracking without UI lag.
-
-- Hybrid Authentication: Secure login with Email/Password, Google, or GitHub, all managed via Firebase Auth [cite: components/Auth.tsx].
-
-- v0 Data Compatibility: Reads and correctly adapts all session data from the v0 database, ensuring a seamless upgrade for existing users [cite: hooks/useSessionsQuery.ts].
-
-- Server-Side State with TanStack Query: All server data (finished sessions, goals) is managed by TanStack Query, providing caching, automatic refetching, and an optimistic UI.
-
-- Goal Tracking: Full CRUD (Create, Read, Update, Delete) functionality for daily, weekly, and monthly focus goals.
-
-- PWA Installable: Includes a manifest and service worker for a native-like, installable app experience [cite: public/manifest.json].
-
-- Analytics Dashboard: A tab-based dashboard with charts (via Recharts) to visualize your work patterns over time [cite: components/Analytics.tsx].
+-----
 
 ## 🚀 Architecture & Tech Stack
 
-- The architecture of v2 is designed for a clean separation of concerns, scalability, and a robust offline-first, real-time user experience.
+This project uses a modern, scalable architecture designed for a robust user experience by cleanly separating server-side and client-side state.
 
-**Framework: Next.js (App Router)**
+  * **Framework:** [Next.js](https://nextjs.org/) (with Turbopack)
+  * **UI:** [React](https://react.dev/) & [TypeScript](https://www.typescriptlang.org/)
+  * **Styling:** [Tailwind CSS](https://tailwindcss.com/) & [shadcn/ui](https://ui.shadcn.com/)
+  * **Backend & Database:** [Firebase](https://firebase.google.com/) (Authentication & Firestore)
 
-- **UI:** React & TypeScript
+### State Management
 
-- **Styling:** Tailwind CSS & shadcn/ui
+This app's state is managed in three distinct layers:
 
-- **Backend & Database:** Firebase (Authentication & Firestore)
+1.  **Server State (TanStack Query):**
+    All server-side *lists* (e.g., your log of finished sessions, your list of goals) are managed by **[TanStack Query v5](https://tanstack.com/query/latest)**. This gives us powerful caching, request de-duplication, and automatic background refetching.
 
-- **Charts:** Recharts
+2.  **Live Client State (Zustand):**
+    The *live timer* and its immediate state (`isActive`, `onBreak`, `startTime`) are managed in a global **[Zustand](https://zustand-demo.pmnd.rs/)** store. This provides a fast, optimistic UI that is decoupled from components.
 
-- **State Management:** A 3-Layer Hybrid Model
+3.  **Real-time & Offline Sync (Firebase):**
+    We use **Firebase's `onSnapshot` listener** to create a 2-way sync between the `active_sessions/{userId}` document in Firestore and our Zustand store.
 
-## **This app's state is managed in three distinct layers, each with a specific job:**
+      * **Offline-First:** Thanks to `persistentLocalCache`, when you start a session offline, the Zustand action calls `setDoc()`, which writes *instantly* to the local cache. The `onSnapshot` listener hears this local change and updates the UI immediately.
+      * **Cross-Device Sync:** When another device updates the document, `onSnapshot` hears the server change and updates the store, keeping all devices in sync.
 
-## Server State (TanStack Query):
-
-- **Job:** Manages all lists of server-side data.
-
-- **How:** Custom hooks like useSessionsQuery and useGoalsQuery use TanStack Query to fetch, cache, and serve all finished sessions and all goals.
-
-- **Mutations:** Hooks like useCreateSession [cite: hooks/useCreateSession.ts] and useGoalMutations use TanStack's useMutation to handle creating/updating this data, with background retries.
-
-## Live Client State (Zustand):
-
-- **Job:** Manages the single, currently-active timer.
-
-- **How:** A central Zustand store (store/sessionStore.ts) holds the state of the live session (e.g., isActive, onBreak, startTime). This provides an instant, optimistic UI.
-
-## Real-time & Offline Sync (Firebase):
-
-**Job:** This is the "glue" that syncs the Zustand store (Client) with Firestore (Server).
-
-**How:**
-
-**Offline-First:** The Zustand store's actions (startSession, toggleBreak) are async and call setDoc or updateDoc directly [cite: store/sessionStore.ts]. Because lib/firebase.js enables persistentLocalCache, these writes succeed instantly offline by writing to the local cache.
-
-**Cross-Sync:** A hook, useSyncActiveSession [cite: hooks/useSyncActiveSession.ts], uses onSnapshot to listen to a specific document (active_sessions/{userId}). When this doc changes (either from the local cache or another device), it pushes the new data into the Zustand store, syncing the UI everywhere.
+-----
 
 ## 🏁 Getting Started
 
-1. Environment Variables
+### 1\. Environment Variables
 
-Create a .env.local file in the root of the project and add your Firebase project configuration:
+Create a `.env.local` file in the root of the project and add your Firebase project configuration:
+
 ```env
 NEXT_PUBLIC_API_KEY=...
 NEXT_PUBLIC_AUTH_DOMAIN=...
@@ -80,70 +63,65 @@ NEXT_PUBLIC_APP_ID=...
 NEXT_PUBLIC_MEASUREMENT_ID=...
 ```
 
-2. Set Up Firebase
+### 2\. Set Up Firebase
 
-Enable Authentication: In your Firebase project, enable the Email/Password, Google, and GitHub sign-in providers.
+1.  **Enable Authentication:** In your Firebase project, enable the **Email/Password**, **Google**, and **GitHub** sign-in providers.
+2.  **Enable Firestore:** Create a Firestore database.
+3.  **Set Up Security Rules:** You must add rules to allow users to read/write their own data.
+    ```firestore
+    rules_version = '2';
+    service cloud.firestore {
+      match /databases/{database}/documents {
 
-Enable Firestore: Create a Firestore database.
+        // Users can only read/write their own profile
+        match /users/{userId} {
+          allow read, write: if request.auth != null && request.auth.uid == userId;
+        }
 
-Set Up Security Rules: You must add rules to allow users to read/write their own data.
-```js
-rules_version = '2';
-service cloud.firestore {
-  match /databases/{database}/documents {
+        // Users can only manage their own finished sessions
+        match /sessions/{sessionId} {
+          allow read, update, delete: if request.auth != null && request.auth.uid == resource.data.userId;
+          allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
+        }
+        
+        // Users can only manage their own goals
+        match /goals/{goalId} {
+          allow read, update, delete: if request.auth != null && request.auth.uid == resource.data.userId;
+          allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
+        }
 
-    // Users can read/write their own profile
-    match /users/{userId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+        // Users can only manage their *own* single active session
+        match /active_sessions/{userId} {
+          allow read, write: if request.auth != null && request.auth.uid == userId;
+        }
+      }
     }
+    ```
+4.  **Create Indexes:** You must create composite indexes for your queries to work:
+      * `sessions` collection: `userId` (Ascending), `started_at` (Descending)
+      * `goals` collection: `userId` (Ascending), `createdAt` (Descending)
 
-    // Users can manage their own *finished* sessions
-    match /sessions/{sessionId} {
-      allow read, update, delete: if request.auth != null && request.auth.uid == resource.data.userId;
-      allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
-    }
+### 3\. Install Dependencies and Run
 
-    // Users can manage their own goals
-    match /goals/{goalId} {
-      allow read, update, delete: if request.auth != null && request.auth.uid == resource.data.userId;
-      allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
-    }
+This project uses `pnpm`.
 
-    // Users can only manage their *own* single active session
-    match /active_sessions/{userId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
-    }
-  }
-}
-```
-
-**Create Indexes:** You must create two composite indexes for your queries to work:
-
-- Index 1 (Sessions):
-
-  Collection: sessions
-
-  Field 1: userId (Ascending)
-
-  Field 2: started_at (Descending)
-
-- Index 2 (Goals):
-
-  Collection: goals
-
-  Field 1: userId (Ascending)
-
-  Field 2: createdAt (Descending)
-
-**3. Install Dependencies and Run**
-
-This project uses pnpm [cite: pnpm-lock.yaml].
-
-## Install dependencies
-```
+```bash
+# Install dependencies
 pnpm install
-```
-## Run the development server (with Turbopack)
-```
+
+# Run the development server (with Turbopack)
 pnpm dev
 ```
+
+*(This command is from your `package.json`)*
+
+-----
+
+## 🗺️ Future Roadmap
+
+  * [ ] **Toast Notifications:** Add user feedback for actions (e.g., "Session Saved\!", "Error").
+  * [ ] **Picture-in-Picture (PiP):** Add a PiP mode for the timer on desktop.
+  * [ ] **Mobile Notifications:** Implement session controls via the mobile notification panel.
+  * [ ] **UI/Theme Refinement:** Continue to refine the design, themes, and user experience.
+
+  * [ ] **Data-Adapter Refactor:** Fully move data-adapter logic from hooks into `lib/adapter.ts` to be used by all parts of the app.
