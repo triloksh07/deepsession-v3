@@ -1,10 +1,13 @@
 import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDesignElement } from './ui/card';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 import { Play, Clock, Target, TrendingUp } from 'lucide-react';
 import { Session } from '@/types'; // <-- 1. IMPORT THE TYPE
-import { FormatCalculatedDuration } from '@/lib/timeUtils';
+import { calculateDuration } from '@/lib/timeUtils';
+import SessionTracker from '@/components/sessionTracker';
+import { SessionForm } from '@/components/SessionForm';
+import { useSessionStore } from '@/store/sessionStore';
 
 interface DashboardProps {
   sessions: Session[];
@@ -35,6 +38,12 @@ export function Dashboard({ sessions, onStartSession }: DashboardProps) {
     acc[session.type] = (acc[session.type] || 0) + session.sessionTime;
     return acc;
   }, {});
+
+  const startSession = useSessionStore((state) => state.startSession);
+  const isSessionActive = useSessionStore((state) => state.isActive);
+  const handleFormSubmit = (sessionData: Partial<Session>) => {
+    startSession(sessionData as Session);
+  };
 
   const formatTime = (seconds: number) => {
     const hours = Math.floor(seconds / 3600);
@@ -68,19 +77,24 @@ export function Dashboard({ sessions, onStartSession }: DashboardProps) {
       <div className="text-center space-y-4">
         <h1 className="text-3xl font-medium">FocusFlow</h1>
         <p className="text-muted-foreground">Track your productivity and build better work habits</p>
-
-        <Button
+        {/* <Button
           onClick={onStartSession}
           size="lg"
           className="px-8"
         >
           <Play className="mr-2 h-5 w-5" />
           Start New Session
-        </Button>
+        </Button> */}
+        {/* <SessionForm
+          onSubmit={handleFormSubmit}
+        // onCancel={handleFormCancel}
+        /> */}
+
+        <SessionTracker />
       </div>
 
       {/* Today's Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+      {/* <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Today&apos;s Sessions</CardTitle>
@@ -119,10 +133,9 @@ export function Dashboard({ sessions, onStartSession }: DashboardProps) {
             </p>
           </CardContent>
         </Card>
-      </div>
+      </div> */}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-
         {/* Today's Activity Breakdown */}
         {Object.keys(typeBreakdown).length > 0 && (
           <Card>
@@ -139,7 +152,7 @@ export function Dashboard({ sessions, onStartSession }: DashboardProps) {
                         {type}
                       </Badge>
                       <span className="text-sm text-muted-foreground">
-                        {FormatCalculatedDuration(0, time)}
+                        {calculateDuration(0, time)}
                       </span>
                     </div>
                   ))}

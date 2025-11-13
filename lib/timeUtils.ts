@@ -18,12 +18,15 @@ export const formatTimerDuration = (milliseconds: number): string => {
     const minutes = Math.floor((totalSeconds % 3600) / 60);
     const seconds = totalSeconds % 60;
 
-    return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+    if (hours > 0) {
+        return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+    }
+    return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
 };
 
 // Calculate Formated Duration 
 // Format as `1hr 15m 45s` for short, `1 hours, 15 minutes, and 45 seconds` for long, and `01:15:45` for timer
-export const FormatCalculatedDuration = (
+export const calculateDuration = (
     startTime: number,
     endTime: number,
     format: 'short' | 'long' | 'timer' = 'short'
