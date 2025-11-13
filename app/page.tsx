@@ -1,5 +1,5 @@
 'use client'; // This component uses hooks, so it must be a Client Component
-
+// import './styles.css';
 import Image from 'next/image';
 // Firebase imports for data fetching from Firestore
 import { collection, query, where, getDocs, doc, setDoc } from 'firebase/firestore';
@@ -65,10 +65,6 @@ import { toast } from 'sonner';
 // import TimerCard from '@/components/comp/TimerCard';
 // import TodayStatsCard from '@/components/comp/TodayStats';
 // import RecentSessions from '@/components/comp/RecentSession';
-// import AuthComponent from "@/components/AuthComponent";
-// import Link from 'next/link';
-// import { useTabSync } from '@/hooks/useTabSync'; // 👈 Import the hook
-// import PersistentTimer, { TimerHandle } from '@/lib/PersistentTimer';
 
 // --- CREATE THE PROVIDER INSTANCES ---
 const googleProvider = new GoogleAuthProvider();
@@ -251,42 +247,8 @@ export default function App() {
   // --- Main Authenticated View ---
   return (
     <div className="min-h-screen bg-background">
-      <Navbar />
       {/* home page nav bar */}
-      {/* <div className="border-b">
-        <div className="container mx-auto px-6 py-4 flex items-center justify-between max-w-4xl">
-          <div>
-            <h1 className="text-xl font-medium">DeepSession</h1>
-            <p className="text-sm text-muted-foreground">Welcome back, {user.displayName || user.email}</p>
-          </div>
-          <div className="flex items-center space-x-2">
-            {user.photoURL ? (
-              <Image
-                src={user.photoURL}
-                alt={user.displayName || "User avatar"}
-                className="w-8 h-8 rounded-full"
-                width={50}
-                height={48}
-              />
-            ) : (
-              <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                <span className="font-medium text-primary">
-                  {user.displayName?.split(' ').map(n => n[0]).join('') || <UserIcon />}
-                </span>
-              </div>
-            )}
-            <Badge variant="secondary" className="flex items-center space-x-1">
-              <UserIcon className="h-3 w-3" />
-              <span>{user ? 'Synced' : 'Offline'}</span>
-            </Badge>
-            <Button variant="outline" size="sm" onClick={handleLogout}>
-              <LogOut className="h-4 w-4 mr-2" />
-              Sign Out
-            </Button>
-          </div>
-        </div>
-      </div> */}
-
+      <Navbar />
       {/* Dashboard & Session Content */}
       <div className="container mx-auto p-6 max-w-4xl">
         <DashboardContent user={user} />
@@ -322,10 +284,6 @@ const DashboardContent = ({ user }: { user: FirebaseUser }) => {
 
   // { title: string; type: string; notes: string }
   const handleFormSubmit = (sessionData: Partial<Session>) => {
-    // Use the mutation. This will optimistically update
-    // our Zustand store, which will make 'isSessionActive' true,
-    // which will close the form and show the tracker.
-    // startSessionMutation.mutate(sessionData);
     startSession(sessionData as Session);
   };
 
@@ -334,20 +292,20 @@ const DashboardContent = ({ user }: { user: FirebaseUser }) => {
   };
 
   // --- View Rendering ---
-  if (isSessionActive) {
-    // If a session is running, *always* show the tracker
-    return <SessionTracker />;
-  }
+  // if (isSessionActive) {
+  //   // If a session is running, *always* show the tracker
+  //   return <SessionTracker />;
+  // }
 
-  if (showForm) {
-    // If we click "start", show the form
-    return (
-      <SessionForm
-        onSubmit={handleFormSubmit}
-        onCancel={handleFormCancel}
-      />
-    );
-  }
+  // if (showForm) {
+  //   // If we click "start", show the form
+  //   return (
+  //     <SessionForm
+  //       onSubmit={handleFormSubmit}
+  //       onCancel={handleFormCancel}
+  //     />
+  //   );
+  // }
 
   // --- Default View: The Dashboard Tabs ---
   // This component calls the hook once and distributes data
@@ -407,15 +365,6 @@ const DashboardTabs = ({ onStartSessionClick, userId }: { onStartSessionClick: (
       value={activeTab}
       onValueChange={setActiveTab}
       className="space-y-6 grow flex flex-col">
-      {/* <TabsList className="grid w-full grid-cols-5">
-        <TabsTrigger value="dashboard"><Home className="h-4 w-4 mr-2" />Dashboard
-        </TabsTrigger>
-        <TabsTrigger value="goals"><Target className="h-4 w-4 mr-2" />Goals</TabsTrigger>
-        <TabsTrigger value="sessions"><Clock className="h-4 w-4 mr-2" />Sessions</TabsTrigger>
-        <TabsTrigger value="analytics"><BarChart3 className="h-4 w-4 mr-2" />Analytics</TabsTrigger>
-        <TabsTrigger value="export"><Download className="h-4 w-4 mr-2" />Export</TabsTrigger>
-        </TabsList> 
-      */}
 
       <TabsList className="grid w-full grid-cols-5">
         {/* --- See how much cleaner this is? --- */}
@@ -428,6 +377,7 @@ const DashboardTabs = ({ onStartSessionClick, userId }: { onStartSessionClick: (
 
       {/* Dashboard Tab */}
       <TabsContent value="dashboard">
+
         <Dashboard
           sessions={sessions || []}
           onStartSession={onStartSessionClick}

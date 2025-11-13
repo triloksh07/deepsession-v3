@@ -5,11 +5,10 @@ import { Button } from './ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Square, Coffee, Loader2 } from 'lucide-react';
 import { useSessionStore } from '@/store/sessionStore';
-// import { useSessionStore } from '@/store/newSessionStore';
 import PersistentTimer, { TimerHandle } from '@/lib/PersistentTimer'; // Using the v0 timer engine
 import { useShallow } from 'zustand/react/shallow';
 import { nanoid } from 'nanoid'; // For v0 adapter
-import { auth, db } from '@/lib/firebase'; // For v0 adapter
+import { auth, db } from '@/lib/firebase';
 // 2. Import all necessary Firestore functions
 // import {
 //   runTransaction,
@@ -17,12 +16,6 @@ import { auth, db } from '@/lib/firebase'; // For v0 adapter
 //   collection
 // } from 'firebase/firestore';
 
-// --- ADD ---
-// Import the new mutation hooks
-// import { 
-//   useToggleBreakMutation, 
-//   useEndSessionMutation 
-// } from '@/hooks/useTimerMutations';
 import { useCreateSession } from '@/hooks/useCreateSession'; // <-- This saves the FINAL log
 
 export function SessionTracker() {
@@ -43,10 +36,7 @@ export function SessionTracker() {
   );
 
   // 2. Instantiate the mutations
-  // const toggleBreakMutation = useToggleBreakMutation();
-  // const endSessionMutation = useEndSessionMutation();
   const createSessionMutation = useCreateSession();
-
   const { isPending: isSaving } = createSessionMutation;
   // 5. We need a local loading state for the button
   const [isEnding, setIsEnding] = useState(false);
@@ -60,39 +50,6 @@ export function SessionTracker() {
   // This local state is just for the visual display
   const [displayTime, setDisplayTime] = useState(0);
   const [displayBreakTime, setDisplayBreakTime] = useState(0);
-
-  // This effect keeps the visual timer display updated
-  // useEffect(() => {
-  //   let animationFrameId: number;
-  //   const updateDisplay = () => {
-  //     if (isActive && timerRef.current) {
-  //       // Call the new method to get both times
-  //       const { session, break: breakT } = timerRef.current.getCurrentDisplayTimes();
-
-  //       // Update both state variables
-  //       setDisplayTime(session);
-  //       setDisplayBreakTime(breakT);
-  //     }
-  //     animationFrameId = requestAnimationFrame(updateDisplay);
-  //   };
-  //   updateDisplay();
-  //   return () => cancelAnimationFrame(animationFrameId);
-  // }, [isActive]);
-
-  // 4. UI tick loop (polls the timer engine)
-  // useEffect(() => {
-  //   let frameId: number;
-  //   const updateDisplay = () => {
-  //     if (isActive && timerEngineRef.current) {
-  //       const { session, break: breakTime } = timerEngineRef.current.getCurrentDisplayTimes();
-  //       setDisplaySession(session);
-  //       setDisplayBreak(breakTime);
-  //     }
-  //     frameId = requestAnimationFrame(updateDisplay);
-  //   };
-  //   frameId = requestAnimationFrame(updateDisplay);
-  //   return () => cancelAnimationFrame(frameId);
-  // }, [isActive]);
 
   // 5. Format time function (no changes)
   const formatTime = (milliseconds: number) => {
@@ -149,32 +106,9 @@ export function SessionTracker() {
 
     try {
       await clearActiveSession();
-      // The `useSyncActiveSession` hook will hear this deletion
-      // and set isActive: false, hiding this component.
-
-      // --- REMOVED TRANSACTION CODE FOR SIMPLICITY ---
-      // 4. Run the transaction
-      // await runTransaction(db, async (transaction) => {
-      //   // 4a. Read the "lock" doc
-      //   const activeDoc = await transaction.get(activeSessionRef);
-
-      //   if (!activeDoc.exists()) {
-      //     // It's already gone! Another device (or offline sync)
-      //     // already ended this session. We must do nothing.
-      //     console.log("Session already ended by another device. Aborting.");
-      //     return; // Abort the transaction
-      //   }
-
-      //   // 4b. The doc exists, so we are the "winner".
-      //   // Create the new finished session...
-      //   transaction.set(newSessionRef, finalV0Data);
-      //   // ...and delete the active session "lock"
-      //   transaction.delete(activeSessionRef);
-      // });
-
     } catch (error) {
       // 6. The transaction failed (e.g., network error after retries)
-      console.error("End session transaction failed:", error);
+      console.error("End session failed:", error);
       // We can show a toast here: "Failed to save, will retry."
       setIsEnding(false); // Re-enable the button
     }
@@ -199,7 +133,7 @@ export function SessionTracker() {
         onTick={handleTickCallback}
       />
 
-      <div className="flex flex-col items-center justify-center min-h-screen p-6 bg-background">
+      <div className="flex flex-col items-center justify-center p-6 bg-background">
         <Card className="w-full max-w-md">
           <CardHeader className="text-center pb-4">
             <CardTitle className="text-muted-foreground">
@@ -239,11 +173,6 @@ export function SessionTracker() {
                 className={isOnBreak ? 'bg-orange-100 border-orange-300' : ''}
                 disabled={isSaving}
               >
-                {/* {toggleBreakMutation.isPending ? (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                ) : (
-                  <Coffee className="mr-2 h-4 w-4" />
-                )} */}
                 <Coffee className="mr-2 h-4 w-4" />
                 {isOnBreak ? 'End Break' : 'Break'}
               </Button>

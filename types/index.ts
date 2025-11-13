@@ -32,3 +32,8 @@ export interface User {
   email: string;
   name?: string;
 }
+
+export interface SessionFormProps {
+  onSubmit: (sessionData: Partial<Session>) => void;
+  // onCancel: () => void;
+}

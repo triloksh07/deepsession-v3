@@ -187,3 +187,7 @@
 html {
   font-size: var(--font-size);
 }
+
+.bg-main{
+  background-color: #1E1E1E !important;
+}

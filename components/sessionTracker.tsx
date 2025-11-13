@@ -25,13 +25,29 @@ function EditableTitle({ value, onChange, disabled = false }: EditableProps) {
     // 1. Fast, local state for the input
     const [currentValue, setCurrentValue] = useState(value);
     const inputRef = useRef<HTMLInputElement>(null);
+
+    // --- FIX FOR INFINITE LOOP ---
+    // This ref tracks if a change came from an *external* prop update (from Firestore)
+    // vs. a *local* user typing event.
+    const isSyncingRef = useRef(false);
+
     // 2. Debounced version of the local state
+    // --- FIX FOR RACE CONDITION ---
+    // Get the debounced value AND the cancel function from the hook
+    // const [debouncedValue, cancelDebounce] = useDebounce(currentValue, 500); // 500ms delay
     const debouncedValue = useDebounce(currentValue, 500); // 500ms delay
 
     // Sync local state with prop value if it changes externally
     useEffect(() => {
         setCurrentValue(value);
     }, [value]);
+
+    // Sync external prop changes (from Firestore) to our local state
+    // useEffect(() => {
+    //     // Mark that we are syncing, so the auto-save effect doesn't fire
+    //     isSyncingRef.current = true;
+    //     setCurrentValue(value);
+    // }, [value]);
 
     useEffect(() => {
         if (isEditing && inputRef.current) {
@@ -41,12 +57,12 @@ function EditableTitle({ value, onChange, disabled = false }: EditableProps) {
     }, [isEditing]);
 
     // 3. EFFECT: Save to global store *only when debounced value changes*
-    useEffect(() => {
-        // Only call onChange if the debounced value is different from the original prop
-        if (debouncedValue !== value) {
-            onChange(debouncedValue); // This calls updateSessionDetails
-        }
-    }, [debouncedValue, value, onChange]);
+    // useEffect(() => {
+    //     // Only call onChange if the debounced value is different from the original prop
+    //     if (debouncedValue !== value) {
+    //         onChange(debouncedValue); // This calls updateSessionDetails
+    //     }
+    // }, [debouncedValue, value, onChange]);
 
     const handleBlur = () => {
         setIsEditing(false);

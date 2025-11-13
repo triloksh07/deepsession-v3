@@ -27,11 +27,12 @@ export interface Session {
 }
 
 
-export interface EditableTitleProps {
+export interface EditableProps {
   value: string;
   onChange: (val: string) => void;
   disabled?: boolean;
 }
+
 
 // --- Main TimerCard Component ---
 export interface TimerCardProps {

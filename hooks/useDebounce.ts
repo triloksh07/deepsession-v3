@@ -1,21 +1,4 @@
-// import { useEffect, useState, useRef } from 'react';
-
-// function useDebounce<T>(value: T, delay: number): T{
-//     const [debouncedValue, setDebouncedValue] = useState(value);
-
-//     useEffect(() => {
-//         const handler = setTimeout(() => {
-//            setDebouncedValue(value);
-//         }, delay); // debounce delay in ms
-
-//         return () => clearTimeout(handler); // cleanup on each keystroke
-//     }, [value, delay]);
-
-//     return debouncedValue;
-// };
-
-// export default useDebounce;
-
+'use client';
 import { useEffect, useState, useRef } from 'react';
 
 /**
@@ -37,7 +20,7 @@ function useDebounce<T>(value: T, delay: number): [T, () => void] {
 
     useEffect(() => {
         timerRef.current = setTimeout(() => {
-           setDebouncedValue(value);
+            setDebouncedValue(value);
         }, delay); // debounce delay in ms
 
         // cleanup on each keystroke or unmount
