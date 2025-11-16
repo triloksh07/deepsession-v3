@@ -29,7 +29,7 @@ import {
   Award
 } from 'lucide-react';
 import { Session } from '../types/';
-import { FormatCalculatedDuration } from '@/lib/timeUtils'
+import { calculateDuration } from '@/lib/timeUtils'
 
 interface AnalyticsProps {
   sessions: Session[];

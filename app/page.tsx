@@ -35,6 +35,7 @@ import { ExportData } from '@/components/ExportData';
 import { Auth } from '@/components/Auth';
 import {
   Home,
+  Timer,
   Clock,
   BarChart3,
   Target,
@@ -61,6 +62,13 @@ import { fetchGoals } from '@/hooks/useGoalsQuery';
 import { handleExport } from '@/lib/exportUtils'; // <-- 1. IMPORT NEW HANDLER
 import { useTabSync } from '@/hooks/useTabSync';
 import { toast } from 'sonner';
+
+// ---- NavBar ----
+
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@//components/ui/dropdown-menu';
+// import { useState, useEffect } from 'react';
+import { ModeToggle } from '@/components/toggle-theme'
+// ----------------------
 // imports from v0
 // import TimerCard from '@/components/comp/TimerCard';
 // import TodayStatsCard from '@/components/comp/TodayStats';
@@ -290,22 +298,6 @@ const DashboardContent = ({ user }: { user: FirebaseUser }) => {
   const handleFormCancel = () => {
     setShowForm(false);
   };
-
-  // --- View Rendering ---
-  // if (isSessionActive) {
-  //   // If a session is running, *always* show the tracker
-  //   return <SessionTracker />;
-  // }
-
-  // if (showForm) {
-  //   // If we click "start", show the form
-  //   return (
-  //     <SessionForm
-  //       onSubmit={handleFormSubmit}
-  //       onCancel={handleFormCancel}
-  //     />
-  //   );
-  // }
 
   // --- Default View: The Dashboard Tabs ---
   // This component calls the hook once and distributes data

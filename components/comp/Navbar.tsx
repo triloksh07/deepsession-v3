@@ -7,27 +7,21 @@ import { Timer, Download, User, LogOut, Moon, Sun } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@//components/ui/dropdown-menu';
 import { useState, useEffect } from 'react';
 import { ModeToggle } from '@/components/toggle-theme'
-
+import { DashboardContent } from '@/components/customUI/DashbordTabs';
 import {
   onAuthStateChanged,
-  signInWithEmailAndPassword,
-  createUserWithEmailAndPassword,
   signOut,
-  updateProfile,
   User as FirebaseUser, // Rename to avoid conflict
-  signInWithPopup,
-  GoogleAuthProvider,
-  GithubAuthProvider,
 } from 'firebase/auth';
-import { db, auth } from '@/lib/firebase';
+import { auth } from '@/lib/firebase';
 
 export function Navbar() {
-  // const { user, signOut, accessToken } = useAuth();
   const [isDark, setIsDark] = useState(false);
   const [user, setUser] = useState<FirebaseUser | null>(null);
   const [isAuthReady, setIsAuthReady] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
+  // removed theme handling for simplicity && using tailwind's dark mode class strategy
   // useEffect(() => {
   //   const theme = localStorage.getItem('theme') || 'light';
   //   setIsDark(theme === 'dark');
@@ -81,6 +75,11 @@ export function Navbar() {
             </div>
           </div>
 
+          {/* Dashbord tabs */}
+          <div className="hidden md:flex space-x-8">
+            {/* <DashboardContent user={user} /> */}
+          </div>
+
           {/* User Menu */}
           <div className="flex items-center space-x-4">
             {/* <Button variant="ghost" size="sm" onClick={toggleTheme}>
@@ -88,10 +87,10 @@ export function Navbar() {
             </Button> */}
             <ModeToggle />
 
-            <Button variant="ghost" size="sm" onClick={() => { }}>
+            {/* <Button variant="ghost" size="sm" onClick={() => { }}>
               <Download className="w-4 h-4 mr-2" />
               Export
-            </Button>
+            </Button> */}
 
             <DropdownMenu>
               <DropdownMenuTrigger asChild>

@@ -28,12 +28,12 @@ export default function EditableTitle({ value, onChange, disabled = false }: Edi
     }, [isEditing]);
 
     // 3. EFFECT: Save to global store *only when debounced value changes*
-    useEffect(() => {
-        // Only call onChange if the debounced value is different from the original prop
-        if (debouncedValue !== value) {
-            onChange(debouncedValue); // This calls updateSessionDetails
-        }
-    }, [debouncedValue, value, onChange]);
+    // useEffect(() => {
+    //     // Only call onChange if the debounced value is different from the original prop
+    //     if (debouncedValue !== value) {
+    //         onChange(debouncedValue); // This calls updateSessionDetails
+    //     }
+    // }, [debouncedValue, value, onChange]);
 
     const handleBlur = () => {
         setIsEditing(false);

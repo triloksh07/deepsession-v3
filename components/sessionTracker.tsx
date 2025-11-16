@@ -138,7 +138,7 @@ export default function SessionTracker() {
         //     return;
         // }
         // if (!sessionTitle.trim()) return;
-        let dataToSubmit: Partial<Session> = {
+        const dataToSubmit: Partial<Session> = {
             title: sessionTitle.trim(),
             type: sessionType || 'Other',
             notes: sessionNotes
