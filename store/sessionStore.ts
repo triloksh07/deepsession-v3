@@ -3,6 +3,7 @@ import { db, auth } from '@/lib/firebase';
 import { doc, setDoc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { persist } from 'zustand/middleware';
 import { Session } from '@/types'
+import { toast } from "sonner";
 
 export interface Break { start: string; end?: string; }
 export interface SessionInfo { title: string; type: string; notes: string; }
@@ -17,9 +18,11 @@ interface TimerState {
   isActive: boolean;
 
   // --- 1. Actions are now async and will talk to Firestore ---
-  startSession: (info: Session) => Promise<void>;
+  startSession: (info: Partial<Session>) => Promise<void>;
   toggleBreak: () => Promise<void>;
   clearActiveSession: () => Promise<void>; // Replaces endSession
+  // --- NEW: Add an action to update details on the fly ---
+  updateSessionDetails: (updates: Partial<SessionInfo>) => Promise<void>;
   _syncState: (newState: Partial<TimerState>) => void;
 }
 
@@ -52,9 +55,11 @@ export const useSessionStore = create<TimerState>()(
         // This will write to the local cache *immediately* (even offline)
         const activeSessionRef = doc(db, 'active_sessions', user.uid);
         await setDoc(activeSessionRef, newState);
+        // toast.success("Session started.");
         // Our `useSyncActiveSession` hook will hear this and update the store
       } catch (error) {
         console.error("Error starting session:", error);
+        toast.error("Failed to start session.");
         // Add a toast notification here
       }
     },
@@ -85,6 +90,27 @@ export const useSessionStore = create<TimerState>()(
       }
     },
 
+    // --- NEW: Implementation for updating details ---
+    updateSessionDetails: async (updates) => {
+      const user = auth.currentUser;
+      if (!user) return;
+
+      const { isActive } = get();
+      if (!isActive) return; // Can't update a session that isn't active
+
+      const activeSessionRef = doc(db, 'active_sessions', user.uid);
+      try {
+        // This writes the update (e.g., { title: "New Title" }) to Firestore.
+        // The onSnapshot listener in useSyncActiveSession will then update the store.
+        await updateDoc(activeSessionRef, updates);
+        toast.success("Session details updated.");
+      } catch (error) {
+        console.error("Error updating session details:", error);
+        toast.error("Failed to update session details.");
+        // Add toast here
+      }
+    },
+
     // This just deletes the active doc.
     // Saving the *final* session is a separate step.
     clearActiveSession: async () => {
@@ -98,6 +124,7 @@ export const useSessionStore = create<TimerState>()(
         console.error("Error clearing active session:", error);
       }
     },
+
   }),
     {
       // 👇 3. Configure the middleware

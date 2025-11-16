@@ -41,16 +41,18 @@ export function SessionForm({ onSubmit, onCancel }: SessionFormProps) {
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen p-2 bg-background ">
+    <div className="flex items-center justify-center p-2 bg-background ">
       <Card className="w-full max-w-md">
         <CardHeader>
-          <CardTitle>Start New Session</CardTitle>
+          <CardTitle>
+            Start New Focus Session
+          </CardTitle>
         </CardHeader>
 
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="title">Session Title *</Label>
+              {/* <Label htmlFor="title">Session Title *</Label> */}
               <Input
                 id="title"
                 value={title}
@@ -79,7 +81,7 @@ export function SessionForm({ onSubmit, onCancel }: SessionFormProps) {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="notes">Notes (Optional)</Label>
+              <Label htmlFor="notes">Notes</Label>
               <Textarea
                 id="notes"
                 value={notes}
@@ -91,11 +93,11 @@ export function SessionForm({ onSubmit, onCancel }: SessionFormProps) {
 
             <div className="flex space-x-3 pt-4">
               <Button type="submit" className="flex-1">
-                Start Session
+                Start Focus
               </Button>
-              <Button type="button" variant="outline" onClick={onCancel}>
+              {/* <Button type="button" variant="outline" onClick={onCancel}>
                 Cancel
-              </Button>
+              </Button> */}
             </div>
           </form>
         </CardContent>

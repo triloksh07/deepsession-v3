@@ -35,23 +35,6 @@ const createSessionOnFirebase = async (sessionData: FinalV0DataInput) => {
   const user = auth.currentUser;
   if (!user) throw new Error('No authenticated user found');
 
-  // const dataToSave = {
-  //   id: nanoid(), // Use nanoid for a string ID, just like v0
-  //   userId: user.uid,
-  //   title: sessionData.title,
-  //   type: sessionData.session_type_id,
-  //   notes: sessionData.notes,
-  //   breaks: sessionData.breaks,
-
-  //   // Convert numbers/strings back to Firestore Timestamps
-  //   started_at: sessionData.started_at,
-  //   ended_at: sessionData.ended_at,
-
-  //   // Use the v0 field names
-  //   duration: sessionData.total_focus_ms,
-  //   break_duration: sessionData.total_break_ms,
-  // };
-
   const dataToSave = {
     id: user.uid, // The internal v0 id
     userId: user.uid,
