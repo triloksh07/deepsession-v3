@@ -19,26 +19,33 @@ export async function middleware(req: NextRequest) {
         pathname.startsWith("/signup") ||
         pathname.startsWith("/auth");
 
-    // Case 1: No cookie at all → redirect immediately
+    // Case 1: No cookie → block protected routes, allow public
     if (!sessionCookie) {
+        if (isAuthedRoute) {
+            return NextResponse.redirect(new URL("/login", req.url));
+        }
+        return NextResponse.next();
+    }
+    // Case 2: Cookie exists → verify for protected routes
+    try {
+        await authAdmin.verifySessionCookie(sessionCookie, true);
+
+        if (isAuthPage) {
+            // ✅ Already authenticated → redirect away from login/signup
+            return NextResponse.redirect(new URL("/dashboard", req.url));
+        }
+
+        if (isAuthedRoute) {
+            // ✅ Valid cookie → allow protected route
+            return NextResponse.next();
+        }
+
+        // For other public routes, just continue
+        return NextResponse.next();
+    } catch {
+        // ❌ Invalid/expired cookie → clear session and redirect to login
         return NextResponse.redirect(new URL("/login", req.url));
     }
-
-    if (isAuthedRoute) {
-        try {
-            // await authAdmin.verifySessionCookie(sessionCookie || "", true);
-            // Case 2: Cookie exists → verify with Firebase Admin SDK
-            await authAdmin.verifySessionCookie(sessionCookie, true);
-
-            // ✅ Valid cookie → allow request to continue
-            return NextResponse.next();
-        } catch {
-            // ❌ Invalid/expired cookie → redirect to login
-            return NextResponse.redirect(new URL("/auth", req.url));
-        }
-    }
-
-    return NextResponse.next();
 }
 
 // Apply middleware only to protected routes
