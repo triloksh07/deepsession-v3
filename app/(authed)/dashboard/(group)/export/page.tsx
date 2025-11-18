@@ -14,6 +14,8 @@ import {
   Loader2
 } from 'lucide-react';
 import { Session, Goal } from '@/types';
+import { useDashboard } from '../../_components/DashboardProvider';
+import { handleExport } from '@/lib/exportUtils'
 
 interface ExportDataProps {
   sessions: Session[];
@@ -30,7 +32,8 @@ interface ExportOptions {
   sessionTypes: string[];
 }
 
-export default function ExportData({ sessions, goals, onExport }: ExportDataProps) {
+export default function ExportData() {
+  const { sessions, goals } = useDashboard();
   const [isExporting, setIsExporting] = useState(false);
   const [format, setFormat] = useState<'json' | 'csv'>('json');
   const [options, setOptions] = useState<ExportOptions>({
@@ -43,7 +46,16 @@ export default function ExportData({ sessions, goals, onExport }: ExportDataProp
 
   const sessionTypes = ['Coding', 'Learning', 'Practice', 'Exercise', 'Planning', 'Other'];
 
-  const handleExport = async () => {
+  const onExport = async (format: 'json' | 'csv', options: ExportOptions) => {
+    handleExport({
+      format,
+      options,
+      sessions: sessions || [],
+      goals: goals || [],
+    });
+  }
+
+  const handleDataExport = async () => {
     setIsExporting(true);
     try {
       await onExport(format, options);
@@ -228,7 +240,7 @@ export default function ExportData({ sessions, goals, onExport }: ExportDataProp
 
             {/* Export Button */}
             <Button
-              onClick={handleExport}
+              onClick={handleDataExport}
               disabled={isExporting || (!options.includeSessions && !options.includeGoals)}
               className="w-full"
             >
