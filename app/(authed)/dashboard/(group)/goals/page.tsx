@@ -20,18 +20,20 @@ import {
   Zap
 } from 'lucide-react';
 import { Session, Goal } from '@/types';
+import { useDashboard } from '../../_components/DashboardProvider';
 
 interface GoalsProps {
   sessions: Session[];
-  onGoalCreate: (goal: Omit<Goal, 'id' | 'createdAt' | 'userId'>) => void;
-  onGoalUpdate: (id: string, goal: Partial<Goal>) => void;
-  onGoalDelete: (id: string) => void;
   goals: Goal[];
+  createGoal: (goal: Omit<Goal, 'id' | 'createdAt' | 'userId'>) => void;
+  updateGoal: (id: string, goal: Partial<Goal>) => void;
+  deleteGoal: (id: string) => void;
 }
 
 type CreateGoalInput = Omit<Goal, 'id' | 'createdAt'> & { userId?: string };
 
-export default function Goals({ sessions, onGoalCreate, onGoalUpdate, onGoalDelete, goals }: GoalsProps) {
+export default function Goals() {
+  const { sessions, createGoal, updateGoal, deleteGoal, goals } = useDashboard();
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [editingGoal, setEditingGoal] = useState<Goal | null>(null);
   const [formData, setFormData] = useState({
@@ -64,12 +66,12 @@ export default function Goals({ sessions, onGoalCreate, onGoalUpdate, onGoalDele
 
     try {
       if (editingGoal) {
-        onGoalUpdate(editingGoal.id, {
+        updateGoal(editingGoal.id, {
           ...formData,
           updatedAt: new Date().toISOString()
         });
       } else {
-        onGoalCreate(formData);
+        createGoal(formData);
       }
 
       setIsCreateDialogOpen(false);
@@ -96,7 +98,7 @@ export default function Goals({ sessions, onGoalCreate, onGoalUpdate, onGoalDele
   const handleDelete = async (goalId: string) => {
     if (confirm('Are you sure you want to delete this goal?')) {
       try {
-        await onGoalDelete(goalId);
+        await deleteGoal(goalId);
       } catch (error) {
         console.error('Failed to delete goal:', error);
       }

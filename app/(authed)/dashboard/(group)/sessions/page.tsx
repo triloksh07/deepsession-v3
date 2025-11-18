@@ -30,6 +30,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useState } from 'react';
+import { useSessionsQuery } from '@/hooks/useSessionsQuery';
+import { useAuth } from '@/context/AuthProvider';
+import { useDashboard } from '../../_components/DashboardProvider';
 // ---------------------------------
 
 // --- 2. CREATE A MAP FOR EASY LOOKUP ---
@@ -44,12 +47,10 @@ const getSessionLabel = (id: string) => {
   return sessionTypeMap.get(id)?.label || id; // Fallback to showing the id
 };
 
-interface SessionLogProps {
-  sessions: Session[];
-}
-
-export default function SessionLog({ sessions }: SessionLogProps) {
-
+export default function SessionLog() {
+  // const { user } = useAuth();
+  const { sessions } = useDashboard();
+  // const { data: sessions, } = useSessionsQuery(user?.uid || '', true)
   const { mutate: updateSession, isPending: isUpdating } = useUpdateSession();
   const { mutate: deleteSession, isPending: isDeleting } = useDeleteSession();
 
@@ -133,7 +134,7 @@ export default function SessionLog({ sessions }: SessionLogProps) {
   };
 
   // Group sessions by date
-  const groupedSessions = sessions.reduce((groups: { [key: string]: Session[] }, session) => {
+  const groupedSessions = sessions?.reduce((groups: { [key: string]: Session[] }, session) => {
     const date = session.date;
     if (!groups[date]) {
       groups[date] = [];
@@ -143,7 +144,7 @@ export default function SessionLog({ sessions }: SessionLogProps) {
   }, {});
 
   // Sort dates in descending order
-  const sortedDates = Object.keys(groupedSessions).sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
+  const sortedDates = Object.keys(groupedSessions!).sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
 
   if (sessions.length === 0) {
     return (

@@ -30,6 +30,7 @@ import {
   Award
 } from 'lucide-react';
 import { Session } from '@/types/';
+import { useDashboard } from '../../_components/DashboardProvider';
 import { calculateDuration } from '@/lib/timeUtils'
 
 interface AnalyticsProps {
@@ -42,7 +43,9 @@ interface TypeData {
   count: number;
 }
 
-export function Analytics({ sessions }: AnalyticsProps) {
+export default function Analytics() {
+  const { sessions, createGoal, updateGoal, deleteGoal, goals } = useDashboard();
+  const sessionNew = sessions || [];
   // ✅ LOG #3: Check the props received by the component
   console.log("3. Data Received as Prop in Analytics.tsx:", sessions);
 
