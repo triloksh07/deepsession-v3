@@ -6,7 +6,6 @@ import { Play, Clock, Target, TrendingUp } from 'lucide-react';
 import { Session } from '@/types'; // <-- 1. IMPORT THE TYPE
 import { calculateDuration } from '@/lib/timeUtils';
 import SessionTracker from '@/app/(authed)/dashboard/_components/sessionTracker';
-import { SessionForm } from '@/components/SessionForm';
 import { useSessionStore } from '@/store/sessionStore';
 
 interface DashboardProps {

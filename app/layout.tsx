@@ -10,6 +10,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { NetworkStatusHandler } from '@/components/NetworkStatusHandler';
 import { Analytics } from '@vercel/analytics/next';
 import ServiceWorkerRegister from '@/components/serviceWorker'
+// import { SkeletonProvider } from "react-skeletonify";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -47,31 +48,31 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="system"
-          enableSystem
-          disableTransitionOnChange
+      <html lang="en" suppressHydrationWarning>
+        <body
+          className={`${geistSans.variable} ${geistMono.variable} antialiased`}
         >
-          <Providers>
-            <AuthProvider>
-              {children}
-              <Toaster />
-              <div className="fixed bottom-4 right-4 z-50">
-                <InstallPWAButton />
-              </div>
-              {/* It will run the hook on the client-side */}
-              <NetworkStatusHandler />
-              <ServiceWorkerRegister />
-              <Analytics />
-            </AuthProvider>
-          </Providers>
-        </ ThemeProvider>
-      </body>
-    </html>
+          <ThemeProvider
+            attribute="class"
+            defaultTheme="system"
+            enableSystem
+            disableTransitionOnChange
+          >
+            <Providers>
+              <AuthProvider>
+                {children}
+                <Toaster />
+                <div className="fixed bottom-4 right-4 z-50">
+                  <InstallPWAButton />
+                </div>
+                {/* It will run the hook on the client-side */}
+                <NetworkStatusHandler />
+                <ServiceWorkerRegister />
+                <Analytics />
+              </AuthProvider>
+            </Providers>
+          </ ThemeProvider>
+        </body>
+      </html>
   );
 }

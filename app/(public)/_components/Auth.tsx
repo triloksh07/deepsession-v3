@@ -18,8 +18,8 @@ import {
   Github  // GitHub Icon
 } from 'lucide-react';
 import Link from 'next/link';
+import { useRouter } from "next/navigation";
 import {
-  onAuthStateChanged,
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   signOut,
@@ -28,9 +28,11 @@ import {
   signInWithPopup,
   GoogleAuthProvider,
   GithubAuthProvider,
+  sendEmailVerification
 } from 'firebase/auth';
 import { doc, setDoc } from 'firebase/firestore';
 import { db, auth } from '@/lib/firebase';
+import { toast } from "sonner";
 
 interface AuthProps {
   defaultTab?: 'login' | 'signup';
@@ -54,6 +56,7 @@ export function Auth({
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isProviderLoading, setIsProviderLoading] = useState(false); // For Google/GitHub auth
+  const router = useRouter();
 
   // --- Auth Handlers ---
   const handleLogin = async (email: string, password: string) => {
@@ -61,6 +64,7 @@ export function Auth({
     try {
       await signInWithEmailAndPassword(auth, email, password);
       // onAuthStateChanged will handle the user state update
+      router.push('/dashboard/overview');
       setIsLoading(false);
       return { success: true };
     } catch (error: unknown) {
@@ -78,6 +82,9 @@ export function Auth({
 
       // Update the user's profile
       await updateProfile(loggedInUser, { displayName: name });
+      // Consider wrapping the email send in a try-catch to handle potential errors gracefully, 
+      // but don't block the redirect if it fails
+      sendEmailVerification(loggedInUser);
 
       // (good practice) Save user to 'users' collection
       const userRef = doc(db, "users", loggedInUser.uid);
@@ -89,6 +96,7 @@ export function Auth({
 
       // onAuthStateChanged will handle the user state
       setIsLoading(false);
+      router.push('/verify-email');
       return { success: true };
     } catch (error: unknown) {
       setIsLoading(false);
@@ -115,11 +123,21 @@ export function Auth({
     try {
       const result = await signInWithPopup(auth, authProvider);
       await updateUserProfile(result.user);
+      const verified = result.user.emailVerified;
+      if (verified) {
+        router.push("/dashboard/overview");
+      }
+      if (!verified) {
+        sendEmailVerification(result.user)
+        router.push("/verify-email");
+      }
       setIsProviderLoading(false);
+      toast.success('Sign in Succes!');
       return { success: true };
     } catch (error: unknown) {
       // ... (error handling)
       setIsProviderLoading(false);
+      toast.error('Sign in failed!');
       const message = error instanceof Error ? error.message : 'Unknown error';
       return { success: false, error: message };
     }

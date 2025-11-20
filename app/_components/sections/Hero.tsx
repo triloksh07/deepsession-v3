@@ -3,7 +3,7 @@ import Link from 'next/link';
 
 export function Hero() {
   return (
-    <section className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center px-4 sm:px-6 lg:px-8 pt-32 pb-20">
+    <section className="min-h-screen bg-linear-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center px-4 sm:px-6 lg:px-8 pt-32 pb-20">
       <div className="max-w-6xl mx-auto w-full">
         <div className="grid md:grid-cols-2 gap-12 items-center">
           <div className="space-y-8">
@@ -15,7 +15,7 @@ export function Hero() {
             <div className="space-y-4">
               <h1 className="text-5xl sm:text-6xl font-bold text-white leading-tight">
                 Track Deep Work,
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-emerald-400"> Offline</span>
+                <span className="text-transparent bg-clip-text bg-linear-to-r from-blue-400 to-emerald-400"> Offline</span>
               </h1>
               <p className="text-xl text-slate-300 leading-relaxed">
                 DeepSession is a modern web app that helps you track focus sessions with an offline-first architecture. Start anywhere, sync everywhere.
@@ -53,7 +53,7 @@ export function Hero() {
 
           <div className="hidden md:flex justify-center">
             <div className="relative w-full max-w-md">
-              <div className="absolute inset-0 bg-gradient-to-r from-blue-500 to-emerald-500 rounded-2xl blur-3xl opacity-20"></div>
+              <div className="absolute inset-0 bg-linear-to-r from-blue-500 to-emerald-500 rounded-2xl blur-3xl opacity-20"></div>
               <div className="relative bg-slate-800 border border-slate-700 rounded-2xl p-8 backdrop-blur-sm shadow-2xl">
                 <div className="space-y-6">
                   <div className="flex items-center justify-between">
@@ -62,7 +62,7 @@ export function Hero() {
                   </div>
 
                   <div className="text-center">
-                    <div className="text-6xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-emerald-400 font-mono">
+                    <div className="text-6xl font-bold text-transparent bg-clip-text bg-linear-to-r from-blue-400 to-emerald-400 font-mono">
                       2:45:32
                     </div>
                     <p className="text-slate-400 text-sm mt-2">Deep Work Session</p>
