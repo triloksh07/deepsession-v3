@@ -1,19 +1,9 @@
-// app/(authed)/dashboard/_components/Navbar
 "use client"
 import React from 'react';
-import Link from "next/link";
-import {
-  Home,
-  Target,
-  Clock,
-  BarChart3,
-  Download,
-  User,
-  Timer,
-  LogOut
-} from "lucide-react";
-import { useRouter } from 'next/navigation';
+// import { useAuth } from './contexts/AuthContext';
+// import { supabaseUrl } from './utils/supabase/info';
 import { Button } from '@/components/ui/button';
+import { Timer, Download, User, LogOut, Moon, Sun } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@//components/ui/dropdown-menu';
 import { useState, useEffect } from 'react';
 import { ModeToggle } from '@/components/toggle-theme'
@@ -24,13 +14,18 @@ import {
 } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 
-export default function Navbar() {
+export function Navbar() {
   const [isDark, setIsDark] = useState(false);
+  const [user, setUser] = useState<FirebaseUser | null>(null);
   const [isAuthReady, setIsAuthReady] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState("dashboard");
-  const [user, setUser] = useState<FirebaseUser | null>(null);
-  const router = useRouter();
+
+  // removed theme handling for simplicity && using tailwind's dark mode class strategy
+  // useEffect(() => {
+  //   const theme = localStorage.getItem('theme') || 'light';
+  //   setIsDark(theme === 'dark');
+  //   document.documentElement.classList.toggle('dark', theme === 'dark');
+  // }, []);
 
   // NEW: Modern way to handle auth state changes with Firebase
   // --- Auth Listener ---
@@ -49,10 +44,20 @@ export default function Navbar() {
     return () => unsubscribe();
   }, []);
 
+  // const toggleTheme = () => {
+  //   const newTheme = isDark ? 'light' : 'dark';
+  //   setIsDark(!isDark);
+  //   localStorage.setItem('theme', newTheme);
+  //   document.documentElement.classList.toggle('dark', newTheme === 'dark');
+  // };
+
   const handleLogout = async () => {
     await signOut(auth);
-    router.push("/login");
+    // No need to refresh, onAuthStateChanged will set user to null
   };
+  // const handleExport = async () => {
+
+  // };
 
   return (
     <nav className="w-screen border-b border-gray-200 dark:border-gray-700 glass">
@@ -71,51 +76,20 @@ export default function Navbar() {
 
           {/* Dashbord tabs */}
           <div className="hidden md:flex space-x-8">
-            <Link
-              href="/dashboard/overview"
-              className="flex items-center gap-2 px-4 py-2 rounded-[11px] bg-[#1E1E1E] text-white"
-            >
-              <Home className="w-[17px] h-[17px]" strokeWidth={1.43} />
-              <span className="text-[17px] leading-[26px]">Dashboard</span>
-            </Link>
-
-            <Link
-              href="/dashboard/goals"
-              className="flex items-center gap-2 px-4 py-2 rounded-[11px] text-[#A0A0A0] hover:bg-[#1E1E1E] hover:text-white transition-colors"
-            >
-              <Target className="w-[17px] h-[17px]" strokeWidth={1.43} />
-              <span className="text-[17px] leading-[26px]">Goals</span>
-            </Link>
-
-            <Link
-              href="/dashboard/sessions"
-              className="flex items-center gap-2 px-4 py-2 rounded-[11px] text-[#A0A0A0] hover:bg-[#1E1E1E] hover:text-white transition-colors"
-            >
-              <Clock className="w-[17px] h-[17px]" strokeWidth={1.43} />
-              <span className="text-[17px] leading-[26px]">Sessions</span>
-            </Link>
-
-            <Link
-              href="/dashboard/analytics"
-              className="flex items-center gap-2 px-4 py-2 rounded-[11px] text-[#A0A0A0] hover:bg-[#1E1E1E] hover:text-white transition-colors"
-            >
-              <BarChart3 className="w-[17px] h-[17px]" strokeWidth={1.43} />
-              <span className="text-[17px] leading-[26px]">Analytics</span>
-            </Link>
-
-            <Link
-              href="/dashboard/export-data"
-              className="flex items-center gap-2 px-4 py-2 rounded-[11px] text-[#A0A0A0] hover:bg-[#1E1E1E] hover:text-white transition-colors"
-            >
-              <Download className="w-[17px] h-[17px]" strokeWidth={1.43} />
-              <span className="text-[17px] leading-[26px]">Export</span>
-            </Link>
+            {/* <DashboardContent user={user} /> */}
           </div>
 
           {/* User Menu */}
           <div className="flex items-center space-x-4">
-
+            {/* <Button variant="ghost" size="sm" onClick={toggleTheme}>
+              {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+            </Button> */}
             <ModeToggle />
+
+            {/* <Button variant="ghost" size="sm" onClick={() => { }}>
+              <Download className="w-4 h-4 mr-2" />
+              Export
+            </Button> */}
 
             <DropdownMenu>
               <DropdownMenuTrigger asChild>

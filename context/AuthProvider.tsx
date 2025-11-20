@@ -1,8 +1,10 @@
+// /context/AuthProvider.tsx
 "use client";
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import type { User as FirebaseUser } from "firebase/auth";
+import { setPersistence, browserLocalPersistence } from 'firebase/auth'
 import { useSyncActiveSession } from "@/hooks/useSyncActiveSession";
 import { useQueryClient } from '@tanstack/react-query';
 import { fetchSessions } from '@/hooks/useSessionsQuery';
@@ -27,10 +29,10 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
     const [loading, setLoading] = useState(true);
     // We must ensure this hook only runs *after* the user is set. (user?.uid is undefined initially)
     const [isAuthReady, setIsAuthReady] = useState(false);
-
+    setPersistence(auth, browserLocalPersistence).catch(console.error)
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-            if(currentUser){
+            if (currentUser) {
                 setUser(currentUser);
                 setIsAuthReady(true);
             } else {

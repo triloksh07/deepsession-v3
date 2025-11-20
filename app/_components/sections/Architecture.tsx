@@ -58,10 +58,10 @@ export function Architecture() {
             return (
               <div
                 key={index}
-                className="bg-gradient-to-br from-slate-800 to-slate-900 border border-slate-700 rounded-xl p-8 hover:border-slate-600 transition-all duration-300"
+                className="bg-linear-to-br from-slate-800 to-slate-900 border border-slate-700 rounded-xl p-8 hover:border-slate-600 transition-all duration-300"
               >
                 <div
-                  className={`inline-flex items-center justify-center w-14 h-14 rounded-lg bg-gradient-to-br ${layer.color} mb-6`}
+                  className={`inline-flex items-center justify-center w-14 h-14 rounded-lg bg-linear-to-br ${layer.color} mb-6`}
                 >
                   <Icon className="text-white" size={28} />
                 </div>
@@ -80,7 +80,7 @@ export function Architecture() {
           })}
         </div>
 
-        <div className="bg-gradient-to-br from-slate-800 to-slate-900 border border-slate-700 rounded-xl p-12">
+        <div className="bg-linear-to-br from-slate-800 to-slate-900 border border-slate-700 rounded-xl p-12">
           <h3 className="text-2xl font-semibold text-white mb-12">
             Complete Tech Stack
           </h3>

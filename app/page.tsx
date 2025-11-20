@@ -1,4 +1,3 @@
-"use client";
 import { Navigation } from './_components/Navigation';
 import { Hero } from './_components/sections/Hero';
 import { Features } from './_components/sections/Features';
@@ -6,6 +5,12 @@ import { Architecture } from './_components/sections/Architecture';
 import { UseCases } from './_components/sections/UseCases';
 import { QuickStart } from './_components/sections/QuickStart';
 import { Footer } from './_components/Footer';
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "DeepSession - Track | Analyse | Improve",
+  description: "Boost your productivity with AI-driven focus sessions, personalized insights, and seamless task management.",
+};
 
 function App() {
   return (

@@ -1,6 +1,6 @@
 ## DeepSession - v3 architecture
 
-```sh
+```md
 app/
 ├── (auth)/             <-- For login/signup pages
 │   ├── login/
@@ -8,12 +8,12 @@ app/
 │   └── signup/
 │       └── page.tsx
 │
-├── (authed)/           <-- Your main app lives here
-│   ├── layout.tsx      <-- **The new "Dashboard Shell"**
+├── (authed)/           <-- main app lives here
+│   ├── layout.tsx      <-- [note]
 │   ├── dashboard/
-│   │   └── page.tsx    <-- (This is your old 'Dashboard' tab)
+│   │   └── page.tsx    <-- ()
 │   ├── sessions/
-│   │   └── page.tsx    <-- (This is your old 'Sessions' tab)
+│   │   └── page.tsx    <-- ()
 │   ├── goals/
 │   │   └── page.tsx
 │   ├── analytics/
@@ -24,3 +24,4 @@ app/
 ├── layout.tsx          <-- Root layout (ThemeProvider, Toaster, etc.)
 └── page.tsx            <-- The new "Home" page (e.g., marketing or redirect)
 ```
+#### note: **(authed)/layout now handles auth guards and wraps children with DashboardProvider as a client component**

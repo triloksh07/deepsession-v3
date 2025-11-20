@@ -79,8 +79,6 @@ const PersistentTimer = forwardRef<TimerHandle, PersistentTimerProps>(
         // This happens *before* the first paint.
         onTick(sessionElapsed.current, breakElapsed.current);
       }
-
-      // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [
       isActive,
       sessionStartTime,
@@ -133,7 +131,7 @@ const PersistentTimer = forwardRef<TimerHandle, PersistentTimerProps>(
           frameId = null;
         }
       };
-    }, [isActive, isOnBreak]);
+    }, [isActive, isOnBreak, onTick]);
 
     useImperativeHandle(ref, () => ({
       // 👇 2. Implement the `start` method
