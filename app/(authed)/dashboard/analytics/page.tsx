@@ -305,7 +305,7 @@ function AnalyticsContent({ timeRange }: AnalyticsContentProps) {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-13 gap-1 mb-4">
-            {heatmapData.map((day: any) => (
+            {heatmapData.map((day) => (
               <div key={day.date} className={`${day.intensity === 0 ? 'bg-gray-100' : day.intensity === 1 ? 'bg-green-200' : day.intensity === 2 ? 'bg-green-300' : day.intensity === 3 ? 'bg-green-400' : 'bg-green-500'} w-3 h-3 rounded-sm`} title={`${day.date}: ${day.sessions} sessions, ${formatTime(day.totalTime)}`} />
             ))}
           </div>

@@ -2,7 +2,7 @@ import type { MetadataRoute } from 'next'
  
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: 'DeepSession-v2',
+    name: 'DeepSession-v3',
     short_name: 'DeepSession',
     description: 'AI powered focus coach',
     start_url: '/',
