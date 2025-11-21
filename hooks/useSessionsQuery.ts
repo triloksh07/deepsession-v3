@@ -1,9 +1,9 @@
+// hooks/useSessionsQuery.ts
 import { useQuery } from '@tanstack/react-query';
-import { collection, query, where, getDocs, orderBy } from 'firebase/firestore';
+import { collection, query, where, getDocs, orderBy, onSnapshot } from 'firebase/firestore';
 import { db, auth } from '@/lib/firebase';
-import { Session } from '@/types'; // Import our new shared type
+import { Session } from '@/types';
 
-// The data model as it exists in your v0 Firestore
 interface FirestoreSessionData {
   id: string;
   userId: string;
@@ -24,6 +24,7 @@ export const fetchSessions = async (userId: string): Promise<Session[]> => {
     console.error("useSessionsQuery: Aborted, no userId provided.");
     return [];
   }
+
   try {
     const sessionsRef = collection(db, 'sessions');
     const q = query(
@@ -32,10 +33,12 @@ export const fetchSessions = async (userId: string): Promise<Session[]> => {
       orderBy('started_at', 'desc')
     );
     const querySnapshot = await getDocs(q);
+    querySnapshot.docs.forEach(doc => {
+      console.log("Session data from cache: " , doc.metadata.fromCache); // true if served from local cache
+    });
     const sessions: Session[] = querySnapshot.docs
       .map(doc => {
         const data = doc.data() as FirestoreSessionData;
-
         // 2. We keep this check, it's good practice
         if (!data.started_at || !data.ended_at) {
           console.warn("Skipping session, missing timestamp:", data.id);
@@ -47,27 +50,25 @@ export const fetchSessions = async (userId: string): Promise<Session[]> => {
         const endTime = new Date(data.ended_at).getTime();
 
         if (isNaN(startTime) || isNaN(endTime)) {
-          console.warn("Skipping session, invalid date format:", data.id, data.started_at);
+          console.warn("Skipping session, invalid date format:", data.id, data.started_at, data.ended_at);
           return null;
         }
-
-        // --- 3. THIS IS THE FIX ---
-        // Map the v0 fields to the v2 fields
         return {
-          id: doc.id, // <-- THIS IS THE FIX
+          id: doc.id,
           title: data.title,
-          type: data.session_type_id,   // <-- MAP v0 field
+          type: data.session_type_id,
           notes: data.notes || '',
-          sessionTime: data.total_focus_ms, // <-- MAP v0 field
-          breakTime: data.total_break_ms, // <-- MAP v0 field
+          sessionTime: data.total_focus_ms,
+          breakTime: data.total_break_ms,
           startTime: startTime,
           endTime: endTime,
           date: new Date(startTime).toISOString().split('T')[0],
-        };
+        } as Session; //--- new ---
       })
-      .filter(session => session !== null) as Session[]; // Filter out bad data
+      .filter(Boolean) as Session[];
+      // .filter(session => session !== null) as Session[]; // Filter out bad data
 
-    console.log("useSessionsQuery: Successfully fetched and adapted", sessions.length, "sessions.");
+    console.log("useSessionsQuery: Successfully fetched", sessions.length, "sessions.");
     return sessions;
 
   } catch (error) {
@@ -86,11 +87,12 @@ export const useSessionsQuery = (
     // The query key: ['sessions', 'userId']
     // This caches the data based on the user
     queryKey: ['sessions', userId],
-    // The query function
     queryFn: () => fetchSessions(userId!),
-    // queryFn: () => fetchSessions(userId as string),
-    // Only run this query if the user is logged in
-    // enabled: !!userId,
-    enabled: enabled, // <-- PASS THE PROP
+    enabled: enabled,
+    staleTime: 1000 * 60 * 60, // 1 hour - prevents refetch on remount
+    gcTime: 1000 * 60 * 60 * 24, // 24 hours
+    refetchOnMount: false,
+    refetchOnWindowFocus: false,
+    retry: 1,
   });
 };

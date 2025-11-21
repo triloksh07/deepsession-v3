@@ -53,6 +53,7 @@
     "embla-carousel-react": "^8.6.0",
     "express": "^5.1.0",
     "firebase": "^12.1.0",
+    "idb-keyval": "^6.2.2",
     "import-in-the-middle": "^2.0.0",
     "input-otp": "^1.4.2",
     "lucide-react": "^0.552.0",

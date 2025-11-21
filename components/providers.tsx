@@ -12,7 +12,10 @@ function makeQueryClient() {
       queries: {
         // We can set some sensible defaults here
         staleTime: 1000 * 60 * 5, // 5 minutes
+        gcTime: 1000 * 60 * 60 * 24,
+        refetchOnMount: false,
         refetchOnWindowFocus: false, // Optional: turn off auto-refetch
+        retry: 1,
       },
     },
   });

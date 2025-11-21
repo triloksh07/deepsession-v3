@@ -12,8 +12,8 @@ import { useSessionStore } from '@/store/sessionStore';
 import { useDashboard } from '../_components/DashboardProvider'
 
 export default function DashboardContent() {
-  const { sessions: SessionsFromStore } = useDashboard();
-  const sessions = SessionsFromStore!;
+  const { sessions: SessionsData } = useDashboard();
+  const sessions = SessionsData ?? [];
   console.log("session data from useDashboard in overview: ", sessions)
   const today = new Date().toISOString().split('T')[0];
   const todaySessions = sessions.filter(session => session.date === today);

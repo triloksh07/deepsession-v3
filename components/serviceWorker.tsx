@@ -3,7 +3,6 @@ import { useEffect } from "react";
 
 export default function ServiceWorkerRegister() {
   useEffect(() => {
-    // client/register-sw.js (import from _app)
     if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
       if (process.env.NODE_ENV === 'production') {
         window.addEventListener('load', () => {

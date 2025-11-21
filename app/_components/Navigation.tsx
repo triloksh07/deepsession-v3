@@ -50,7 +50,7 @@ export function Navigation() {
             >
               Get Started
             </button>
-            <Link href="/login" className="inline-flex items-center gap-2 hover:cursor-pointer">
+            <Link href="/dashboard" className="inline-flex items-center gap-2 hover:cursor-pointer">
               <button className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-6 rounded-lg transition-colors hover:cursor-pointer">
                 Try Now
               </button>
