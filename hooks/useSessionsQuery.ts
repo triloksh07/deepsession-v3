@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { collection, query, where, getDocs, orderBy, onSnapshot } from 'firebase/firestore';
 import { db, auth } from '@/lib/firebase';
 import { Session } from '@/types';
+import { useSessionsRealtime } from './useFirestoreListener';
 
 interface FirestoreSessionData {
   id: string;
@@ -34,7 +35,7 @@ export const fetchSessions = async (userId: string): Promise<Session[]> => {
     );
     const querySnapshot = await getDocs(q);
     querySnapshot.docs.forEach(doc => {
-      console.log("Session data from cache: " , doc.metadata.fromCache); // true if served from local cache
+      console.log("Session data from cache: ", doc.metadata.fromCache); // true if served from local cache
     });
     const sessions: Session[] = querySnapshot.docs
       .map(doc => {
@@ -66,7 +67,7 @@ export const fetchSessions = async (userId: string): Promise<Session[]> => {
         } as Session; //--- new ---
       })
       .filter(Boolean) as Session[];
-      // .filter(session => session !== null) as Session[]; // Filter out bad data
+    // .filter(session => session !== null) as Session[]; // Filter out bad data
 
     console.log("useSessionsQuery: Successfully fetched", sessions.length, "sessions.");
     return sessions;
@@ -88,6 +89,7 @@ export const useSessionsQuery = (
     // This caches the data based on the user
     queryKey: ['sessions', userId],
     queryFn: () => fetchSessions(userId!),
+    // queryFn: () => useSessionsRealtime(userId),
     enabled: enabled,
     staleTime: 1000 * 60 * 60, // 1 hour - prevents refetch on remount
     gcTime: 1000 * 60 * 60 * 24, // 24 hours

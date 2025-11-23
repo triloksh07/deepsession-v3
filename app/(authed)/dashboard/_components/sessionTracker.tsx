@@ -3,7 +3,7 @@ import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { Button } from '../../../../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../../../../components/ui/card';
 import { Input } from '../../../../components/ui/input';
-import { Label } from '../../../../components/ui/label';
+import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../../../components/ui/select';
 import { Textarea } from '../../../../components/ui/textarea';
 import { Square, Coffee, Loader2 } from 'lucide-react';
@@ -11,7 +11,11 @@ import { useSessionStore } from '@/store/sessionStore';
 import PersistentTimer, { TimerHandle } from '@/app/(authed)/dashboard/_lib/PersistentTimer';
 import { useShallow } from 'zustand/react/shallow';
 import { auth, db } from '@/lib/firebase';
-import { useCreateSession } from '@/hooks/useCreateSession'; // <-- This saves the FINAL log
+
+// import { useCreateSession } from '@/hooks/useCreateSession'; // <-- This saves the FINAL log
+import { useCreateSession } from '@/hooks/new/useCreateSession';
+// import { useCreateSession } from '@/hooks/new/useCreateSesMut';
+
 import { DEFAULT_SESSION_TYPES } from '@/config/sessionTypes.config';
 import type { Session, SessionFormProps } from '@/types';
 import { formatTimerDuration as formatTime } from '@/lib/timeUtils';
@@ -114,6 +118,7 @@ export default function SessionTracker() {
     );
     const status = isActive ? (isOnBreak ? 'paused' : 'running') : 'idle'; // Derive status of active session from the store
     const createSessionMutation = useCreateSession(); // Instantiate the mutations
+    const { mutate: createSession, isPending } = useCreateSession();
     const { isPending: isSaving } = createSessionMutation;
     const timerRef = useRef<TimerHandle>(null); // This ref gives us access to the timer engine's functions
     // These local states are just for the visual display
@@ -176,6 +181,7 @@ export default function SessionTracker() {
 
         // 3. Save the final session (this is offline-capable)
         createSessionMutation.mutateAsync(finalV0Data);
+        // createSession(finalV0Data);
         try {
             await clearActiveSession();
         } catch (error) {

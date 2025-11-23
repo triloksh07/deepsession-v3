@@ -8,7 +8,10 @@ import type { User as FirebaseUser } from "firebase/auth";
 import { setPersistence, browserLocalPersistence } from 'firebase/auth'
 import { useSyncActiveSession } from "@/hooks/useSyncActiveSession";
 import { useQueryClient } from '@tanstack/react-query';
+
 import { fetchSessions } from '@/hooks/useSessionsQuery';
+// import { useSessionsQuery } from '@/hooks/new/SessionQuery';
+
 import { fetchGoals } from '@/hooks/useGoalsQuery';
 
 // Small helper to detect client
@@ -57,40 +60,41 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
 
 
     // --- PREFETCHING: prime TanStack Query cache for offline-first UX ---
-    useEffect(() => {
-        if (!user?.uid) return;
+    // useEffect(() => {
+    //     if (!user?.uid) return;
 
-        (async () => {
-            console.log('User logged in. Pre-fetching data for offline use...');
-            try {
-                // prefetch sessions - set a long staleTime so components don't refetch on mount
-                await queryClient.prefetchQuery({
-                    queryKey: ['sessions', user.uid],
-                    queryFn: () => fetchSessions(user.uid),
-                    // store fetched data in cache with a long staleTime to avoid unnecessary refetches
-                    staleTime: 1000 * 60 * 60, // 1 hour
-                    gcTime: 1000 * 60 * 60 * 24, // 24 hours
-                });
-                console.log('Prefetched sessions successfully');
-            } catch (err) {
-                console.error('Prefetch sessions failed (non-blocking):', err);
-            }
+    //     (async () => {
+    //         console.log('User logged in. Pre-fetching data for offline use...');
+    //         try {
+    //             // prefetch sessions - set a long staleTime so components don't refetch on mount
+    //             await queryClient.prefetchQuery({
+    //                 queryKey: ['sessions', user.uid],
+    //                 queryFn: () => fetchSessions(user.uid),
+    //                 // store fetched data in cache with a long staleTime to avoid unnecessary refetches
+    //                 staleTime: 1000 * 60 * 60, // 1 hour
+    //                 gcTime: 1000 * 60 * 60 * 24, // 24 hours
+    //             });
+    //             console.log('Prefetched sessions successfully');
+    //         } catch (err) {
+    //             console.error('Prefetch sessions failed (non-blocking):', err);
+    //         }
 
-            try {
-                await queryClient.prefetchQuery({
-                    queryKey: ['goals', user.uid],
-                    queryFn: () => fetchGoals(user.uid),
-                    staleTime: 1000 * 60 * 60,
-                    gcTime: 1000 * 60 * 60 * 24,
-                });
-                console.log('Prefetched goals successfully');
-            } catch (err) {
-                console.error('Prefetch goals failed (non-blocking):', err);
-            }
+    //         try {
+    //             await queryClient.prefetchQuery({
+    //                 queryKey: ['goals', user.uid],
+    //                 queryFn: () => fetchGoals(user.uid),
+    //                 staleTime: 1000 * 60 * 60,
+    //                 gcTime: 1000 * 60 * 60 * 24,
+    //             });
+    //             console.log('Prefetched goals successfully');
+    //         } catch (err) {
+    //             console.error('Prefetch goals failed (non-blocking):', err);
+    //         }
 
-        })();
+    //     })();
+    // }, [user?.uid]);
 
-    }, [user?.uid, queryClient]);
+    // }, [user?.uid, queryClient]);
 
   // real-time sync hook — 
   // it handles active session syncing and cross-device updates

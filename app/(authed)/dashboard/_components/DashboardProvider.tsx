@@ -1,7 +1,11 @@
 // app/(authed)/dashboard/DashboardProvider.tsx
 "use client";
 import React, { createContext, useContext } from "react";
-import { useSessionsQuery } from "@/hooks/useSessionsQuery";
+
+// import { useSessionsQuery } from "@/hooks/new/SessionQuery";
+import { useSessionsQuery } from "@/hooks/new/useSessionsQuery";
+// import { useSessionsQuery } from "@/hooks/useSessionsQuery";
+
 import { useGoalsQuery } from "@/hooks/useGoalsQuery";
 import { useCreateGoal, useUpdateGoal, useDeleteGoal } from "@/hooks/useGoalMutations";
 import type { Session, Goal, } from "@/types";
@@ -18,8 +22,6 @@ type DashboardContextType = {
   deleteGoal: (id: string) => void;
 };
 
-// const DashboardContext = createContext<DashboardContextType | undefined>('' as unknown as DashboardContextType);
-
 const DashboardContext = createContext<DashboardContextType | undefined>(
   undefined
 );
@@ -31,12 +33,15 @@ export default function DashboardProvider({
   children: React.ReactNode;
   userId: string;
 }) {
+  
   const {
     data: sessionsData,
     isLoading: loadingSessions,
     isError: errSessions,
     error: sessionsError
   } = useSessionsQuery(userId, true);
+
+  // const sessionsData = useSessionsRealtime(userId);
 
   const {
     data: goalsData,

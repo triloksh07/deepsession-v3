@@ -8,7 +8,7 @@
     "start": "next start",
     "run-build": "next build && next start",
     "lint": "eslint",
-    "typecheck": "pnpm exec tsc",
+    "typecheck": "pnpm exec tsc --noEmit",
     "reset": "rm -rf .next node_modules && pnpm install",
     "inspect": "NODE_OPTIONS='--inspect' pnpm dev",
     "clean": "turbo prune --scope=deepsession-v3 --docker && docker build -t deepsession-v3 -f ./pruned/Dockerfile ./pruned"
