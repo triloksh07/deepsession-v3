@@ -12,9 +12,7 @@ import PersistentTimer, { TimerHandle } from '@/app/(authed)/dashboard/_lib/Pers
 import { useShallow } from 'zustand/react/shallow';
 import { auth, db } from '@/lib/firebase';
 
-// import { useCreateSession } from '@/hooks/useCreateSession'; // <-- This saves the FINAL log
-import { useCreateSession } from '@/hooks/new/useCreateSession';
-// import { useCreateSession } from '@/hooks/new/useCreateSesMut';
+import { useCreateSession } from '@/hooks/new/useCreateSession'; // <-- This saves the FINAL log
 
 import { DEFAULT_SESSION_TYPES } from '@/config/sessionTypes.config';
 import type { Session, SessionFormProps } from '@/types';

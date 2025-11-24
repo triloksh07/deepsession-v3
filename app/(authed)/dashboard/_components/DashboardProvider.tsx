@@ -7,8 +7,8 @@ import { useSessionsQuery } from "@/hooks/new/useSessionsQuery";
 // import { useSessionsQuery } from "@/hooks/useSessionsQuery";
 import type { UpdateSessionInput } from "@/hooks/new/useSessionMutations";
 import { useUpdateSession, useDeleteSession } from "@/hooks/new/useSessionMutations";
-import { useGoalsQuery } from "@/hooks/useGoalsQuery";
-import { useCreateGoal, useUpdateGoal, useDeleteGoal } from "@/hooks/useGoalMutations";
+import { useGoalsQuery } from "@/hooks/new/useGoalsQuery";
+import { useCreateGoal, useUpdateGoal, useDeleteGoal } from "@/hooks/new/useGoalMutations";
 import type { Session, Goal, } from "@/types";
 import { Skeleton as SkeletonBlock } from '@/components/ui/skeleton'
 
@@ -23,8 +23,8 @@ type DashboardContextType = {
   updateGoal: (id: string, goal: Partial<Goal>) => void;
   deleteGoal: (id: string) => void;
 
-  updateSession: (input: UpdateSessionInput) => void;
-  deleteSession: (id: string) => void;
+  // updateSession: (input: UpdateSessionInput) => void;
+  // deleteSession: (id: string) => void;
 };
 
 const DashboardContext = createContext<DashboardContextType | undefined>(
@@ -57,12 +57,12 @@ export default function DashboardProvider({
 
   // --- GOAL MUTATIONS ---
   const createGoalMutation = useCreateGoal();
-  const updateGoalMutation = useUpdateGoal();
-  const deleteGoalMutation = useDeleteGoal();
+  const updateGoalMutation = useUpdateGoal(userId);
+  const deleteGoalMutation = useDeleteGoal(userId);
 
   // --- SESSION MUTATIONS (NEW) ---
-  const updateSessionMutation = useUpdateSession(userId);
-  const deleteSessionMutation = useDeleteSession(userId);
+  // const updateSessionMutation = useUpdateSession(userId);
+  // const deleteSessionMutation = useDeleteSession(userId);
 
   const isLoading = loadingSessions || loadingGoals;
   const isError = errSessions || errGoals;
@@ -79,8 +79,8 @@ export default function DashboardProvider({
     updateGoal: (id: string, updates) => updateGoalMutation.mutate({ id, updates }),
     deleteGoal: (id: string) => deleteGoalMutation.mutate(id),
     // ✅ expose session mutations
-    updateSession: (input) => updateSessionMutation.mutate(input),
-    deleteSession: (id) => deleteSessionMutation.mutate(id),
+    // updateSession: (input) => updateSessionMutation.mutate(input),
+    // deleteSession: (id) => deleteSessionMutation.mutate(id),
   };
 
   // Prevent rendering children until initial data is available.

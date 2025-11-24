@@ -120,5 +120,8 @@ export const useSessionsQuery = (userId: string | undefined, enabled: boolean) =
         refetchOnWindowFocus: false,
         refetchOnReconnect: false,
         retry: 1,
+        networkMode: 'offlineFirst',
+        // 🔑 IMPORTANT: sirf data change pe re-render
+        notifyOnChangeProps: ['data'],
     });
 };
