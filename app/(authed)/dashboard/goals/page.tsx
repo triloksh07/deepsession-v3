@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import { Session, Goal } from '@/types';
 import { useDashboard } from '../_components/DashboardProvider';
+import { nanoid } from "nanoid"
 
 // -----------------------------------------------------------------------------
 // 1. Loading Fallback Component
@@ -362,6 +363,7 @@ export default function Goals() {
 
     const handleEdit = (goal: Goal) => {
         setFormData({
+            // id: nanoid(),
             title: goal.title,
             description: goal.description,
             type: goal.type,

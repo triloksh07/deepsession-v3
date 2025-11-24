@@ -1,11 +1,11 @@
 
 -----
 
-# DeepSession v2
+# DeepSession v3
 
 A modern, offline-first web application designed to help you track and analyze your deep work and focus sessions. Built with a robust architecture for real-time, cross-device synchronization.
 
-This project is the successor to `v0`, migrating from a simple MVP to a scalable, professional-grade application.
+This project is the successor to `v0 & v2`, migrating from a simple MVP to a scalable, professional-grade application.
 
 ## ✨ Core Features
 
