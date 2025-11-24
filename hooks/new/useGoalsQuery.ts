@@ -42,10 +42,10 @@ export const fetchGoals = async (userId: string): Promise<Goal[]> => {
 
     const data = querySnapshot.docs.map(
       (doc) =>
-        ({
-          ...doc.data(),
-          id: doc.id,
-        } as Goal)
+      ({
+        ...doc.data(),
+        id: doc.id,
+      } as Goal)
     );
 
     console.log(
@@ -83,10 +83,10 @@ export const useGoalsQuery = (userId: string | undefined, enabled: boolean) => {
       (snapshot) => {
         const goals = snapshot.docs.map(
           (doc) =>
-            ({
-              ...doc.data(),
-              id: doc.id,
-            } as Goal)
+          ({
+            ...doc.data(),
+            id: doc.id,
+          } as Goal)
         );
 
         qc.setQueryData<Goal[]>(['goals', userId], goals);
@@ -106,8 +106,7 @@ export const useGoalsQuery = (userId: string | undefined, enabled: boolean) => {
 
   return useQuery({
     queryKey: ['goals', userId],
-    // initial fetch only – snapshot keeps cache fresh afterwards
-    queryFn: () => fetchGoals(userId!),
+    queryFn: () => fetchGoals(userId!), // initial fetch only – snapshot keeps cache fresh afterwards
     enabled: !!userId && enabled,
     staleTime: 1000 * 60 * 60, // 1 hour
     gcTime: 1000 * 60 * 60 * 24, // 24 hours
@@ -115,5 +114,8 @@ export const useGoalsQuery = (userId: string | undefined, enabled: boolean) => {
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,
     retry: 1,
+    networkMode: 'offlineFirst',
+    // 🔑 IMPORTANT: sirf data change pe re-render
+    notifyOnChangeProps: ['data'],
   });
 };
