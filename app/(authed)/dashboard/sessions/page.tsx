@@ -6,7 +6,6 @@ import { Badge } from '@/components/ui/badge';
 import { Clock, Calendar, FileText, Edit, Trash2 } from 'lucide-react';
 import type { Session } from '@/types';
 import { DEFAULT_SESSION_TYPES } from '@/config/sessionTypes.config';
-// import { useUpdateSession, useDeleteSession } from '@/hooks/useSessionMutations';
 import { useUpdateSession, useDeleteSession } from '@/hooks/new/useSessionMutations';
 import {
   AlertDialog,
@@ -17,7 +16,6 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import {
   Dialog,
@@ -30,16 +28,14 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { useAuth } from '@/context/AuthProvider'
 import { useDashboard } from '../_components/DashboardProvider';
+import { SafeMarkdown } from '@/components/SafeMarkdown'; // IMPORTED
 
-// Helper: build map for session type lookup
 const sessionTypeMap = new Map<string, { label: string; color: string }>(
   DEFAULT_SESSION_TYPES.map((type) => [type.id, { label: type.label, color: type.color }])
 );
 const getSessionTypeInfo = (id: string) => sessionTypeMap.get(id) || { label: id, color: '#808080' };
 
-// Lightweight skeleton used as Suspense fallback. Kept local so we don't need an extra file.
 function SessionsListSkeleton() {
   return (
     <div className="space-y-4 p-4">
@@ -53,8 +49,6 @@ function SessionsListSkeleton() {
   );
 }
 
-// SessionsContent: reads data from DashboardProvider and renders the list.
-// It intentionally *uses* useDashboard() so it can suspend independently.
 function SessionsContent({ onEdit, onRequestDelete }: { onEdit: (s: Session) => void; onRequestDelete: (s: Session) => void; }) {
   const { sessions } = useDashboard();
   const sessionList = sessions ?? [];
@@ -120,7 +114,7 @@ function SessionsContent({ onEdit, onRequestDelete }: { onEdit: (s: Session) => 
                       <div className="col-span-2 flex items-start justify-between mb-3">
                         <div className="flex justify-center items-center space-x-3">
                           <div className="flex-1">
-                            <h3 className="font-medium mb-1 overflow-hidden whitespace-break-spaces">{session.title}</h3>
+                            <h3 className="font-medium mb-1 truncate">{session.title}</h3>
                             <div className="flex items-center space-x-2 text-muted-foreground">
                               <span>{formatDateTime(session.startTime)} - {formatDateTime(session.endTime)}</span>
                             </div>
@@ -142,9 +136,12 @@ function SessionsContent({ onEdit, onRequestDelete }: { onEdit: (s: Session) => 
                       </div>
 
                       {session.notes && (
-                        <div className="col-span-2 flex items-start space-x-2 text-muted-foreground">
-                          <FileText className="h-4 w-4 mt-0.5 shrink" />
-                          <p className="text-sm">{session.notes}</p>
+                        <div className="col-span-2 flex items-start space-x-2 text-muted-foreground mt-2">
+                          <FileText className="h-4 w-4 mt-1 shrink-0" />
+                          {/* UPDATED: Uses SafeMarkdown instead of <p> */}
+                          <div className="flex-1 text-sm overflow-hidden">
+                             <SafeMarkdown content={session.notes} />
+                          </div>
                         </div>
                       )}
 
@@ -174,12 +171,6 @@ function SessionsContent({ onEdit, onRequestDelete }: { onEdit: (s: Session) => 
 
 export default function SessionLog() {
   const { userId } = useDashboard();
-  // const {
-  //   sessions,
-  //   updateSession,
-  //   deleteSession,
-  // } = useDashboard();
-  // Local UI state and mutations live here (outside Suspense)
   const { mutate: updateSession, isPending: isUpdating } = useUpdateSession(userId);
   const { mutate: deleteSession, isPending: isDeleting } = useDeleteSession(userId);
 
@@ -195,7 +186,6 @@ export default function SessionLog() {
   const handleSaveEdit = () => {
     if (!editingSession) return;
     if (newTitle.trim() !== '') {
-      // const dataToUpdate = { id: editingSession.id, updates: { title: newTitle } }
       updateSession({ id: editingSession.id, updates: { title: newTitle } });
     }
     setEditingSession(null);
@@ -213,7 +203,6 @@ export default function SessionLog() {
 
   return (
     <div className="space-y-6">
-      {/* SSR-shellable header: render immediately */}
       <Card>
         <CardHeader>
           <CardTitle>Sessions</CardTitle>
@@ -223,26 +212,22 @@ export default function SessionLog() {
         </CardContent>
       </Card>
 
-      {/* Suspense boundary for the sessions list - shows skeleton while data loads */}
       <Suspense fallback={<SessionsListSkeleton />}>
         <SessionsContent onEdit={handleEditClick} onRequestDelete={handleRequestDelete} />
       </Suspense>
 
-      {/* Edit Dialog - outside Suspense and controlled by local state */}
       <Dialog open={!!editingSession} onOpenChange={(isOpen) => !isOpen && setEditingSession(null)}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
             <DialogTitle>Edit session title</DialogTitle>
             <DialogDescription>Make changes to your session title here. Click save when you're done.</DialogDescription>
           </DialogHeader>
-
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="title" className="text-right">Title</Label>
               <Input id="title" value={newTitle} onChange={(e) => setNewTitle(e.target.value)} className="col-span-3" />
             </div>
           </div>
-
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditingSession(null)}>Cancel</Button>
             <Button onClick={handleSaveEdit} disabled={isUpdating}>Save changes</Button>
@@ -250,7 +235,6 @@ export default function SessionLog() {
         </DialogContent>
       </Dialog>
 
-      {/* Delete confirmation dialog - single shared dialog outside Suspense */}
       <AlertDialog open={!!deleteCandidate} onOpenChange={(open) => !open && setDeleteCandidate(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>

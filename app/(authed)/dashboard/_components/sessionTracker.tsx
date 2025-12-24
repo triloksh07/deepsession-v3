@@ -1,36 +1,82 @@
 'use client'
 import React, { useRef, useEffect, useState, useCallback } from 'react';
-import { Button } from '../../../../components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '../../../../components/ui/card';
-import { Input } from '../../../../components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../../../components/ui/select';
-import { Textarea } from '../../../../components/ui/textarea';
-import { Square, Coffee, Loader2 } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Square, Coffee, Loader2, StopCircleIcon, CoffeeIcon, PlayIcon, FileText, Eye } from 'lucide-react';
 import { useSessionStore } from '@/store/sessionStore';
 import PersistentTimer, { TimerHandle } from '@/app/(authed)/dashboard/_lib/PersistentTimer';
 import { useShallow } from 'zustand/react/shallow';
-import { auth, db } from '@/lib/firebase';
-
-import { useCreateSession } from '@/hooks/new/useCreateSession'; // <-- This saves the FINAL log
-
+import { auth } from '@/lib/firebase';
+import { useCreateSession } from '@/hooks/new/useCreateSession';
 import { DEFAULT_SESSION_TYPES } from '@/config/sessionTypes.config';
-import type { Session, SessionFormProps } from '@/types';
+import type { Session } from '@/types';
 import { formatTimerDuration as formatTime } from '@/lib/timeUtils';
-import { StopCircleIcon, CoffeeIcon, PlayIcon } from 'lucide-react';
 import { EditableProps } from '@/types/typeDeclaration';
 import { nanoid } from 'nanoid';
+import { SafeMarkdown } from '@/components/SafeMarkdown';
 
+// --- COMPONENT: BufferedNotes (The Solution) ---
+// Mirrors EditableTitle but for Textarea.
+// 1. Holds local state while typing (fast, no re-renders of parent).
+// 2. Flushes to global store only on BLUR (focus lost).
+// 3. Handles external updates (e.g. session reset) via useEffect.
+interface BufferedNotesProps {
+    value: string;
+    onSave: (newValue: string) => void;
+    placeholder?: string;
+    className?: string;
+    disabled?: boolean;
+}
+
+function BufferedNotes({ value, onSave, placeholder, className, disabled }: BufferedNotesProps) {
+    // Local state for immediate feedback and buffering
+    const [localValue, setLocalValue] = useState(value);
+
+    // Sync local state if the global value changes externally (e.g., session clear)
+    useEffect(() => {
+        setLocalValue(value);
+    }, [value]);
+
+    const handleBlur = () => {
+        // Only save if content is different to prevent useless network calls
+        if (localValue !== value) {
+            console.log("Saving notes data to server: ", value);
+            onSave(localValue);
+        }
+    };
+
+    const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+        // Optional: Power user feature - Cmd+Enter or Ctrl+Enter to save immediately
+        if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+            e.currentTarget.blur(); // Triggers handleBlur
+        }
+    };
+
+    return (
+        <Textarea
+            value={localValue}
+            onChange={(e) => setLocalValue(e.target.value)}
+            onBlur={handleBlur}
+            onKeyDown={handleKeyDown}
+            placeholder={placeholder}
+            className={className}
+            disabled={disabled}
+        />
+    );
+}
+
+// ... [Keep EditableTitle exactly as it was] ...
 function EditableTitle({ value, onChange, disabled = false }: EditableProps) {
     const [isEditing, setIsEditing] = useState(false);
-    // 1. Fast, local state for the input
     const [currentValue, setCurrentValue] = useState(value);
     const inputRef = useRef<HTMLInputElement>(null);
 
-    // Sync local state with prop value if it changes externally
-    useEffect(() => {
-        setCurrentValue(value);
-    }, [value]);
+    useEffect(() => { setCurrentValue(value); }, [value]);
 
     useEffect(() => {
         if (isEditing && inputRef.current) {
@@ -41,20 +87,17 @@ function EditableTitle({ value, onChange, disabled = false }: EditableProps) {
 
     const handleBlur = () => {
         setIsEditing(false);
-        // Only call onChange if the value actually changed or is not empty & Save immediately on blur
         if (currentValue.trim() !== value.trim() && currentValue.trim() !== '') {
             onChange(currentValue.trim());
         } else {
-            // Reset to original value if input is empty
             setCurrentValue(value);
         }
     };
 
     const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-        if (e.key === 'Enter') {
-            handleBlur();
-        } else if (e.key === 'Escape') {
-            setCurrentValue(value); // Revert changes
+        if (e.key === 'Enter') handleBlur();
+        else if (e.key === 'Escape') {
+            setCurrentValue(value);
             setIsEditing(false);
         }
     };
@@ -75,8 +118,7 @@ function EditableTitle({ value, onChange, disabled = false }: EditableProps) {
             ) : (
                 <span
                     onClick={() => !disabled && setIsEditing(true)}
-                    className={`block w-full text-white px-4 py-3 rounded-lg cursor-pointer transition hover:bg-[#2a2a2a]/50 ${disabled ? 'opacity-60 cursor-not-allowed' : ''
-                        }`}
+                    className={`block w-full text-white px-4 py-3 rounded-lg cursor-pointer transition hover:bg-[#2a2a2a]/50 ${disabled ? 'opacity-60 cursor-not-allowed' : ''}`}
                 >
                     {value || 'Focus Session'}
                 </span>
@@ -86,7 +128,6 @@ function EditableTitle({ value, onChange, disabled = false }: EditableProps) {
 }
 
 export default function SessionTracker() {
-    // Get real-time state from the Zustand store
     const {
         isActive,
         isOnBreak,
@@ -104,9 +145,9 @@ export default function SessionTracker() {
             isActive: state.isActive,
             isOnBreak: state.onBreak,
             startSession: state.startSession,
-            title: state.title,  // This is the GLOBAL title (for active session)
-            type: state.type,    // This is the GLOBAL type (for active session)
-            notes: state.notes,  // This is the GLOBAL notes (for active session)
+            title: state.title,
+            type: state.type,
+            notes: state.notes,
             sessionStartTime: state.sessionStartTime,
             breaks: state.breaks,
             toggleBreak: state.toggleBreak,
@@ -114,57 +155,40 @@ export default function SessionTracker() {
             clearActiveSession: state.clearActiveSession,
         }))
     );
-    const status = isActive ? (isOnBreak ? 'paused' : 'running') : 'idle'; // Derive status of active session from the store
-    const createSessionMutation = useCreateSession(); // Instantiate the mutations
-    const { mutate: createSession, isPending } = useCreateSession();
+    const status = isActive ? (isOnBreak ? 'paused' : 'running') : 'idle';
+    const createSessionMutation = useCreateSession();
     const { isPending: isSaving } = createSessionMutation;
-    const timerRef = useRef<TimerHandle>(null); // This ref gives us access to the timer engine's functions
-    // These local states are just for the visual display
+    const timerRef = useRef<TimerHandle>(null);
     const [displaySessionTime, setDisplaySessionTime] = useState(0);
     const [displayBreakTime, setDisplayBreakTime] = useState(0);
-    // A single callback function that the Timer Engine will call
+
     const handleTickCallback = useCallback((sessionMs: number, breakMs: number) => {
         setDisplaySessionTime(sessionMs);
         setDisplayBreakTime(breakMs);
     }, []);
 
-    // Local state for session details
     const [sessionTitle, setSessionTitle] = useState('');
     const [sessionType, setSessionType] = useState('');
-    const [sessionNotes, setSessionNotes] = useState('');
 
     const handleStart = (e: React.FormEvent) => {
         e.preventDefault();
-        // Check the LOCAL `sessionTitle` from the form, NOT the global `title`.
-        // if (!sessionTitle.trim()) {
-        //     alert("Please enter a session title."); // Or use a toast
-        //     return;
-        // }
-        // if (!sessionTitle.trim()) return;
         const dataToSubmit: Partial<Session> = {
             title: sessionTitle.trim(),
             type: sessionType || 'Other',
-            notes: sessionNotes
+            notes: '' 
         }
-        console.log("Starting session with:", dataToSubmit);
         startSession(dataToSubmit as Session);
     };
 
-    // --- END SESSION HANDLER ---
     const handleEnd = async () => {
-        if (!timerRef.current || !sessionStartTime) {
-            return;
-        }
+        if (!timerRef.current || !sessionStartTime) return;
         const user = auth.currentUser;
         if (!user) return;
 
-        // 1. Get final times from the engine
         const { sessionTime, breakTime } = timerRef.current.endSession();
         const endTime = new Date().toISOString();
 
-        // 2. Build the v0-compatible data object
         const finalV0Data = {
-            // id: user?.uid, // UUID will be generated by Firestore
             id: nanoid(),
             userId: user.uid,
             title: title,
@@ -177,27 +201,18 @@ export default function SessionTracker() {
             total_break_ms: breakTime,
         };
 
-        // 3. Save the final session (this is offline-capable)
         createSessionMutation.mutateAsync(finalV0Data);
-        // createSession(finalV0Data);
         try {
             await clearActiveSession();
         } catch (error) {
-            // 6. The transaction failed (e.g., network error after retries)
             console.error("End session failed:", error);
-            // We can show a toast here: "Failed to save, will retry."
-            // setIsEnding(false); // Re-enable the button
         }
     };
 
-    // Helper to conditionally join class names
     const classNames = (...classes: string[]) => classes.filter(Boolean).join(' ');
-    const isLoading = createSessionMutation.isPending; // Only check the save mutation
 
     return (
         <>
-            {/* The Headless Timer Engine. It renders null. */}
-            {/* It's CRITICAL that isActive and isOnBreak come from the store */}
             <PersistentTimer
                 ref={timerRef}
                 isActive={isActive}
@@ -206,43 +221,36 @@ export default function SessionTracker() {
             />
             <div className="flex items-center justify-center p-2 bg-background ">
                 {status === 'idle' ? (
-                    // Idle State: Show SessionForm to start a new session
+                    // --- IDLE STATE ---
                     <Card className="w-full max-w-md">
                         <CardHeader className="text-center pb-4">
                             <CardTitle className="text-muted-foreground">
                                 Start a new Focus Session
                             </CardTitle>
-                            {/* <div className="text-muted-foreground">
-                                {type || 'Session'}
-                            </div> */}
                         </CardHeader>
-
                         <CardContent className="text-center space-y-6">
                             <form onSubmit={handleStart} className="space-y-4">
                                 <div className="space-y-2">
                                     <Label htmlFor="title">Session Title</Label>
                                     <Input
                                         id="title"
-                                        value={sessionTitle} // Bound to local state
-                                        onChange={(e) => setSessionTitle(e.target.value)} // Updates local state
+                                        value={sessionTitle}
+                                        onChange={(e) => setSessionTitle(e.target.value)}
                                         placeholder="What are you working on?"
                                         autoFocus
                                         className="w-full bg-[#2a2a2a] text-white placeholder-gray-400 rounded-lg px-4 py-3 mb-6 border border-transparent focus:border-[#8A2BE2] focus:ring-0 outline-none"
                                     />
                                 </div>
-
                                 <div className="space-y-2">
                                     <Label htmlFor="type">Session Type</Label>
-                                    {/* Update the Select component */}
                                     <Select value={sessionType} onValueChange={setSessionType}>
                                         <SelectTrigger>
                                             <SelectValue placeholder="Select a session type" />
                                         </SelectTrigger>
                                         <SelectContent>
-                                            {/* Map over the config file */}
                                             {DEFAULT_SESSION_TYPES.map((sessionType) => (
                                                 <SelectItem key={sessionType.id} value={sessionType.id}>
-                                                    {sessionType.label} {/* Show the Label, save the ID */}
+                                                    {sessionType.label}
                                                 </SelectItem>
                                             ))}
                                         </SelectContent>
@@ -257,11 +265,10 @@ export default function SessionTracker() {
                         </CardContent>
                     </Card>
                 ) : (
-                    // Active State: Timer Display
-                    < Card className="w-full max-w-md">
+                    // --- ACTIVE STATE ---
+                    <Card className="w-full max-w-md">
                         <CardHeader className="text-center pb-4">
                             <CardTitle className="text-muted-foreground">
-                                {/* {title && title || 'Focus Session'} */}
                                 <div className="text-center text-muted-foreground">
                                     {isSaving ? 'Syncing...' : (isOnBreak ? (
                                         <div className="relative top-4 right-4 flex items-center space-x-2 text-red-400 font-semibold animate-pulse">
@@ -276,47 +283,27 @@ export default function SessionTracker() {
                                     ))}
                                 </div>
                             </CardTitle>
-                            {/* <div className="text-muted-foreground">
-                                {type && type || 'Session'}
-                            </div> */}
-                            <div className="flex items-center space-x-3 space-y-2">
-                                {sessionType && (
-                                    <div className="mt-2 inline-block absolute top-2 left-5 bg-purple-700/30 text-purple-300 text-xs font-semibold px-3 py-1 rounded-full">
-                                        {sessionType}
+                            
+                            <div className="flex flex-col space-y-4">
+                                {type && (
+                                    <div className="self-start mt-2 bg-purple-700/30 text-purple-300 text-xs font-semibold px-3 py-1 rounded-full">
+                                        {DEFAULT_SESSION_TYPES.find(t => t.id === type)?.label || type}
                                     </div>
                                 )}
-                                <div className="w-full flex flex-col items-center space-y-2 mt-4 mb-4">
+                                
+                                <div className="w-full">
                                     <EditableTitle
                                         value={title}
                                         onChange={(newTitle) => updateSessionDetails({ title: newTitle })}
-                                        // disabled={status === 'paused'} // optional: lock editing during breaks
-                                        disabled={isLoading} // Disable while saving
+                                        disabled={isSaving}
                                     />
                                 </div>
-
-                                {/* <div className="space-y-2">
-                                    <Label htmlFor="notes">Notes</Label>
-                                    <Textarea
-                                        id="notes"
-                                        value={sessionNotes}
-                                        onChange={(e) => setSessionNotes(e.target.value)}
-                                        placeholder="Any initial thoughts or goals for this session..."
-                                        rows={4}
-                                    />
-                                </div> */}
                             </div>
                         </CardHeader>
 
                         <CardContent className="text-center space-y-6">
-                            {/* ... (state & Timer display) ... */}
                             <div className="space-y-2">
                                 <div className={`transition-all duration-300 ${isOnBreak ? 'text-muted-foreground' : 'text-foreground'}`}>
-                                    {/* {status === 'running' && (
-                                        <div className="relative top-4 right-4 flex items-center space-x-2 text-green-400 font-semibold animate-pulse">
-                                            <span className="w-4 h-4 rounded-full" />
-                                            <span>Active</span>
-                                        </div>
-                                    )} */}
                                     <div className="text-6xl font-mono tracking-tight">
                                         {formatTime(displaySessionTime)}
                                     </div>
@@ -325,12 +312,6 @@ export default function SessionTracker() {
 
                                 {displayBreakTime > 0 && (
                                     <div className={`transition-all duration-300 ${isOnBreak ? 'text-foreground' : 'text-muted-foreground'}`}>
-                                        {/* {status === 'paused' && (
-                                            <div className="relative top-4 right-4 flex items-center space-x-2 text-red-400 font-semibold animate-pulse">
-                                                <CoffeeIcon className="w-4 h-4" />
-                                                <span>ON Break</span>
-                                            </div>
-                                        )} */}
                                         <div className="text-2xl font-mono tracking-tight">
                                             {formatTime(displayBreakTime)}
                                         </div>
@@ -339,14 +320,44 @@ export default function SessionTracker() {
                                 )}
                             </div>
 
-                            {/* 7. --- CONNECTED CONTROLS --- */}
-                            <div className="flex justify-center space-x-4">
+                            {/* --- NOTES SECTION (BUFFERED) --- */}
+                            <div className="text-left w-full">
+                                <Tabs defaultValue="write" className="w-full">
+                                    <TabsList className="grid w-full grid-cols-2 mb-2">
+                                        <TabsTrigger value="write" className="flex items-center gap-2">
+                                            <FileText className="w-4 h-4" /> Write
+                                        </TabsTrigger>
+                                        <TabsTrigger value="preview" className="flex items-center gap-2">
+                                            <Eye className="w-4 h-4" /> Preview
+                                        </TabsTrigger>
+                                    </TabsList>
+                                    <TabsContent value="write">
+                                        {/* REPLACED: Raw Textarea with BufferedNotes */}
+                                        <BufferedNotes
+                                            value={notes}
+                                            onSave={(newNotes) => updateSessionDetails({ notes: newNotes })}
+                                            placeholder="Capture your thoughts (Markdown supported)..."
+                                            className="min-h-[120px] resize-none focus-visible:ring-[#8A2BE2]"
+                                        />
+                                        {/* <p className="text-xs text-muted-foreground mt-1 text-right">
+                                            Supports **bold**, - lists, `code`, and [links]
+                                        </p> */}
+                                    </TabsContent>
+                                    <TabsContent value="preview" className="min-h-[120px] p-3 border rounded-md bg-muted/50">
+                                        {notes ? (
+                                            <SafeMarkdown content={notes} />
+                                        ) : (
+                                            <span className="text-sm text-muted-foreground italic">Nothing to preview...</span>
+                                        )}
+                                    </TabsContent>
+                                </Tabs>
+                            </div>
+
+                            <div className="flex justify-center space-x-4 pt-2">
                                 <Button
                                     onClick={toggleBreak}
                                     variant="outline"
                                     size="lg"
-                                    // className={isOnBreak ? 'bg-orange-100 border-orange-300' : ''}
-                                    // disabled={isSaving}
                                     className={classNames(
                                         "px-6 py-3 rounded-lg font-bold flex items-center space-x-2 transition-all cursor-pointer",
                                         status === 'running' ? "bg-gray-700 text-gray-200 hover:bg-gray-600" : "bg-green-500 text-white "
@@ -361,7 +372,6 @@ export default function SessionTracker() {
                                     variant="destructive"
                                     size="lg"
                                     className="bg-red-600/80 text-white px-6 py-3 rounded-lg font-bold flex items-center space-x-2 cursor-pointer hover:bg-red-600"
-                                // disabled={isOnBreak}
                                 >
                                     <StopCircleIcon className="w-5 h-5" />
                                     <span>End</span>
@@ -370,8 +380,7 @@ export default function SessionTracker() {
                         </CardContent>
                     </Card>
                 )}
-            </div >
-
+            </div>
         </>
     )
 }
