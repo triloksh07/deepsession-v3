@@ -1,0 +1,24 @@
+name: Sync GitHub Labels
+
+on:
+  push:
+    paths:
+      - 'config/labels.yml'
+      - '.github/workflows/label-sync.yml'
+
+jobs:
+  sync-labels:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write   # allow pushing changes if needed
+      issues: write     # allow creating/updating labels
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Sync labels
+        uses: crazy-max/ghaction-github-labeler@v4
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          yaml-file: config/labels.yml
+          skip-delete: true # prevents removing labels not in config
