@@ -354,14 +354,14 @@ function AnalyticsContent({ timeRange }: AnalyticsContentProps) {
               <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
                 <div>
                   <h4 className="font-medium">Peak Start Time</h4>
-                  <p className="text-sm text-muted-foreground">Most sessions start around
-                    {/*hourlyData.reduce((max: any, hour: any) => hour.sessions > max.sessions ? hour : max).hour*/}
-                    {`${peakHour}`}
+                  <p className="text-sm text-muted-foreground">Most sessions start around {hourlyData.reduce((max, hour) => hour.sessions > max.sessions ? hour : max).hour}
+                    {/* {hourlyData.reduce((max: any, hour: any) => hour.sessions > max.sessions ? hour : max).hour} */}
+                    {/* {`${peakHour}`} */}
                   </p>
                 </div>
                 <Badge variant="secondary">
-                  {`${peakHour}`}
-                  {/* {hourlyData.reduce((max: any, hour: any) => hour.sessions > max.sessions ? hour : max).hour} */}
+                  {/* {`${peakHour}`} */}
+                  {hourlyData.reduce((max, hour) => hour.sessions > max.sessions ? hour : max).hour}
                 </Badge>
               </div>
             )}
