@@ -141,7 +141,7 @@ export default function SessionTracker() {
     useEffect(() => {
         const local = typeof window !== 'undefined' ? localStorage.getItem('ds-active-notes-draft') : null;
         if (!local && notes !== draftNotes) { setDraftNotes(notes || ''); }
-    }, [notes]);
+    }, [notes, draftNotes]);
 
     // Flush to global store (Zustand)
     const handleNotesCommit = () => {
@@ -327,13 +327,13 @@ export default function SessionTracker() {
                                             onChange={(e) => setDraftNotes(e.target.value)}
                                             onBlur={handleNotesCommit}
                                             placeholder="Capture session summary (Markdown)..."
-                                            className="min-h-[120px] resize-none focus-visible:ring-[#8A2BE2]"
+                                            className="min-h-[120px] max-h-[40vh] resize-none focus-visible:ring-[#8A2BE2]"
                                         />
-                                        <p className="text-xs text-muted-foreground mt-1 text-right">
+                                        {/* <p className="text-xs text-muted-foreground mt-1 text-right">
                                             **bold**, - list, `code`, [link]
-                                        </p>
+                                        </p> */}
                                     </TabsContent>
-                                    <TabsContent value="preview" className="min-h-[120px] p-3 border rounded-md bg-muted/50 overflow-y-auto max-h-[200px]">
+                                    <TabsContent value="preview" className="min-h-[120px] p-3 border rounded-md bg-muted/50 overflow-y-auto max-h-[40vh]">
                                         {/* Render DRAFT notes so preview matches what was just typed */}
                                         {draftNotes ? (
                                             <SafeMarkdown content={draftNotes} />

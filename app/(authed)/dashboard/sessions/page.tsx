@@ -1,6 +1,6 @@
 'use client';
 
-import React, { Suspense, useState, useCallback, memo } from 'react';
+import React, { Suspense, useState, useCallback, memo, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Clock, Calendar, FileText, Edit, Trash2 } from 'lucide-react';
@@ -61,7 +61,9 @@ const SessionsContent = memo(
       onRequestDelete: (s: Session) => void;
     }) {
     const { sessions } = useDashboard();
-    const sessionList = sessions ?? [];
+    const sessionList = useMemo(()=>{
+      return sessions ?? [];
+    }, [sessions]);
 
     const formatTime = (milliseconds: number) => {
       const totalSeconds = Math.floor(milliseconds / 1000);
