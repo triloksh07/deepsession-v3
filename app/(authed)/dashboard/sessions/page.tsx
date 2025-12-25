@@ -264,7 +264,8 @@ export default function SessionLog() {
                 id="notes"
                 value={newNotes}
                 onChange={(e) => setNewNotes(e.target.value)}
-                className="col-span-3 min-h-[100px]"
+                // ADDED: max-h-[40vh] (max 40% of viewport) and overflow-y-auto
+                className="col-span-3 min-h-[100px] max-h-[40vh] overflow-y-auto resize-none"
                 placeholder="Session summary (Markdown supported)"
               />
             </div>

@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Square, Coffee, Loader2, StopCircleIcon, CoffeeIcon, PlayIcon, FileText, Eye } from 'lucide-react';
+import { StopCircleIcon, CoffeeIcon, PlayIcon, FileText, Eye } from 'lucide-react';
 import { useSessionStore } from '@/store/sessionStore';
 import PersistentTimer, { TimerHandle } from '@/app/(authed)/dashboard/_lib/PersistentTimer';
 import { useShallow } from 'zustand/react/shallow';
@@ -20,57 +20,6 @@ import { EditableProps } from '@/types/typeDeclaration';
 import { nanoid } from 'nanoid';
 import { SafeMarkdown } from '@/components/SafeMarkdown';
 
-// --- COMPONENT: BufferedNotes (The Solution) ---
-// Mirrors EditableTitle but for Textarea.
-// 1. Holds local state while typing (fast, no re-renders of parent).
-// 2. Flushes to global store only on BLUR (focus lost).
-// 3. Handles external updates (e.g. session reset) via useEffect.
-interface BufferedNotesProps {
-    value: string;
-    onSave: (newValue: string) => void;
-    placeholder?: string;
-    className?: string;
-    disabled?: boolean;
-}
-
-function BufferedNotes({ value, onSave, placeholder, className, disabled }: BufferedNotesProps) {
-    // Local state for immediate feedback and buffering
-    const [localValue, setLocalValue] = useState(value);
-
-    // Sync local state if the global value changes externally (e.g., session clear)
-    useEffect(() => {
-        setLocalValue(value);
-    }, [value]);
-
-    const handleBlur = () => {
-        // Only save if content is different to prevent useless network calls
-        if (localValue !== value) {
-            console.log("Saving notes data to server: ", value);
-            onSave(localValue);
-        }
-    };
-
-    const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-        // Optional: Power user feature - Cmd+Enter or Ctrl+Enter to save immediately
-        if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
-            e.currentTarget.blur(); // Triggers handleBlur
-        }
-    };
-
-    return (
-        <Textarea
-            value={localValue}
-            onChange={(e) => setLocalValue(e.target.value)}
-            onBlur={handleBlur}
-            onKeyDown={handleKeyDown}
-            placeholder={placeholder}
-            className={className}
-            disabled={disabled}
-        />
-    );
-}
-
-// ... [Keep EditableTitle exactly as it was] ...
 function EditableTitle({ value, onChange, disabled = false }: EditableProps) {
     const [isEditing, setIsEditing] = useState(false);
     const [currentValue, setCurrentValue] = useState(value);
@@ -167,6 +116,41 @@ export default function SessionTracker() {
         setDisplayBreakTime(breakMs);
     }, []);
 
+    // --- FIX: PERSISTENT BUFFER STATE ---
+    // Initialize from LocalStorage if available to survive refreshes
+    const [draftNotes, setDraftNotes] = useState(() => {
+        if (typeof window !== 'undefined') {
+            const saved = localStorage.getItem('ds-active-notes-draft');
+            // If we have a saved draft, use it. Otherwise fall back to server notes.
+            return saved || notes || '';
+        }
+        return notes || '';
+    });
+
+    // 1. Save to LocalStorage on every keystroke (fast, sync)
+    useEffect(() => {
+        if (draftNotes) {
+            localStorage.setItem('ds-active-notes-draft', draftNotes);
+        } else {
+            localStorage.removeItem('ds-active-notes-draft');
+        }
+    }, [draftNotes]);
+
+    // 2. Sync from Server -> Draft (Only if we don't have a local unsaved draft)
+    // This prevents the "empty" server state from clobbering your restored work on load.
+    useEffect(() => {
+        const local = typeof window !== 'undefined' ? localStorage.getItem('ds-active-notes-draft') : null;
+        if (!local && notes !== draftNotes) { setDraftNotes(notes || ''); }
+    }, [notes]);
+
+    // Flush to global store (Zustand)
+    const handleNotesCommit = () => {
+        if (draftNotes !== notes) {
+            updateSessionDetails({ notes: draftNotes });
+            // Optional: We keep the localStorage item until the session fully ends
+        }
+    };
+
     const [sessionTitle, setSessionTitle] = useState('');
     const [sessionType, setSessionType] = useState('');
 
@@ -175,7 +159,7 @@ export default function SessionTracker() {
         const dataToSubmit: Partial<Session> = {
             title: sessionTitle.trim(),
             type: sessionType || 'Other',
-            notes: '' 
+            notes: ''
         }
         startSession(dataToSubmit as Session);
     };
@@ -185,6 +169,12 @@ export default function SessionTracker() {
         const user = auth.currentUser;
         if (!user) return;
 
+        // Ensure any uncommitted notes are captured
+        handleNotesCommit();
+
+        // CLEAR LOCAL STORAGE ON END
+        localStorage.removeItem('ds-active-notes-draft');
+        
         const { sessionTime, breakTime } = timerRef.current.endSession();
         const endTime = new Date().toISOString();
 
@@ -193,7 +183,7 @@ export default function SessionTracker() {
             userId: user.uid,
             title: title,
             session_type_id: type,
-            notes: notes || "",
+            notes: draftNotes || notes || "", // Prefer draft
             breaks: breaks,
             started_at: sessionStartTime,
             ended_at: endTime,
@@ -283,14 +273,14 @@ export default function SessionTracker() {
                                     ))}
                                 </div>
                             </CardTitle>
-                            
+
                             <div className="flex flex-col space-y-4">
                                 {type && (
                                     <div className="self-start mt-2 bg-purple-700/30 text-purple-300 text-xs font-semibold px-3 py-1 rounded-full">
                                         {DEFAULT_SESSION_TYPES.find(t => t.id === type)?.label || type}
                                     </div>
                                 )}
-                                
+
                                 <div className="w-full">
                                     <EditableTitle
                                         value={title}
@@ -320,7 +310,7 @@ export default function SessionTracker() {
                                 )}
                             </div>
 
-                            {/* --- NOTES SECTION (BUFFERED) --- */}
+                            {/* --- SESSION SUMMARY / NOTES --- */}
                             <div className="text-left w-full">
                                 <Tabs defaultValue="write" className="w-full">
                                     <TabsList className="grid w-full grid-cols-2 mb-2">
@@ -332,20 +322,21 @@ export default function SessionTracker() {
                                         </TabsTrigger>
                                     </TabsList>
                                     <TabsContent value="write">
-                                        {/* REPLACED: Raw Textarea with BufferedNotes */}
-                                        <BufferedNotes
-                                            value={notes}
-                                            onSave={(newNotes) => updateSessionDetails({ notes: newNotes })}
-                                            placeholder="Capture your thoughts (Markdown supported)..."
+                                        <Textarea
+                                            value={draftNotes}
+                                            onChange={(e) => setDraftNotes(e.target.value)}
+                                            onBlur={handleNotesCommit}
+                                            placeholder="Capture session summary (Markdown)..."
                                             className="min-h-[120px] resize-none focus-visible:ring-[#8A2BE2]"
                                         />
-                                        {/* <p className="text-xs text-muted-foreground mt-1 text-right">
-                                            Supports **bold**, - lists, `code`, and [links]
-                                        </p> */}
+                                        <p className="text-xs text-muted-foreground mt-1 text-right">
+                                            **bold**, - list, `code`, [link]
+                                        </p>
                                     </TabsContent>
-                                    <TabsContent value="preview" className="min-h-[120px] p-3 border rounded-md bg-muted/50">
-                                        {notes ? (
-                                            <SafeMarkdown content={notes} />
+                                    <TabsContent value="preview" className="min-h-[120px] p-3 border rounded-md bg-muted/50 overflow-y-auto max-h-[200px]">
+                                        {/* Render DRAFT notes so preview matches what was just typed */}
+                                        {draftNotes ? (
+                                            <SafeMarkdown content={draftNotes} />
                                         ) : (
                                             <span className="text-sm text-muted-foreground italic">Nothing to preview...</span>
                                         )}
