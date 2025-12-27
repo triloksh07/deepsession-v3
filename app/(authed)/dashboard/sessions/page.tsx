@@ -61,7 +61,7 @@ const SessionsContent = memo(
       onRequestDelete: (s: Session) => void;
     }) {
     const { sessions } = useDashboard();
-    const sessionList = useMemo(()=>{
+    const sessionList = useMemo(() => {
       return sessions ?? [];
     }, [sessions]);
 
@@ -275,7 +275,10 @@ export default function SessionLog() {
 
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditingSession(null)}>Cancel</Button>
-            <Button onClick={handleSaveEdit} disabled={isUpdating}>Save changes</Button>
+            <Button
+              onClick={handleSaveEdit}
+            // disabled={isUpdating}
+            >Save changes</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
