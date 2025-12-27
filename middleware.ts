@@ -4,27 +4,43 @@ import type { NextRequest } from 'next/server';
 export function middleware(request: NextRequest) {
   // 1. Generate a unique nonce for this request
   const nonce = Buffer.from(crypto.randomUUID()).toString('base64');
-  
+
   // 2. Define the mode (Development needs 'unsafe-eval')
   const isDev = process.env.NODE_ENV !== 'production';
-  
+
   // 3. Construct the CSP string
   //    - script-src: INCLUDES 'nonce-${nonce}' and REMOVES 'unsafe-inline'
   //    - style-src: Kept 'unsafe-inline' for generic React style={{}} attributes (hard to remove in React)
   const cspHeader = `
-    default-src 'self';
-    script-src 'self' 'nonce-${nonce}' 'strict-dynamic' https: http: ${isDev ? "'unsafe-eval'" : ""};
-    style-src 'self' 'unsafe-inline';
-    img-src 'self' blob: data: https://lh3.googleusercontent.com https://firebasestorage.googleapis.com;
-    font-src 'self' data:;
-    object-src 'none';
-    base-uri 'self';
-    form-action 'self';
-    frame-ancestors 'none';
-    block-all-mixed-content;
-    upgrade-insecure-requests;
-    connect-src 'self' https://*.googleapis.com https://*.firebaseio.com https://identitytoolkit.googleapis.com wss://*.firebaseio.com https://securetoken.googleapis.com https://www.google-analytics.com https://www.googletagmanager.com;
-  `;
+  default-src 'self';
+  script-src 'self' 'nonce-${nonce}' 'strict-dynamic' https: http: ${isDev ? "'unsafe-eval'" : ""};
+  style-src 'self' 'unsafe-inline';
+  img-src 'self' blob: data: https://lh3.googleusercontent.com https://firebasestorage.googleapis.com;
+  font-src 'self' data:;
+  object-src 'none';
+  base-uri 'self';
+  form-action 'self';
+  frame-ancestors 'none';
+  block-all-mixed-content;
+  upgrade-insecure-requests;
+  connect-src 'self'
+    https://*.googleapis.com
+    https://apis.google.com
+    https://*.firebaseio.com
+    https://identitytoolkit.googleapis.com
+    wss://*.firebaseio.com
+    https://securetoken.googleapis.com
+    https://www.google-analytics.com
+    https://www.googletagmanager.com
+    https://vitals.vercel-insights.com
+    https://github.com
+    https://api.github.com;
+  frame-src 'self'
+    https://apis.google.com
+    https://github.com
+    https://deepsession-mpt.firebaseapp.com;
+`;
+
 
   // 4. Create a new response with the headers
   //    - 'x-nonce' request header tells Next.js to use this nonce for its internal scripts
