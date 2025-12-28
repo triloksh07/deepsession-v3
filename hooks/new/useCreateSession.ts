@@ -1,13 +1,12 @@
 // hooks/useCreateSession.ts
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
+import { doc, setDoc, addDoc, collection, serverTimestamp } from 'firebase/firestore';
 import { db, auth } from '@/lib/firebase';
 import { toast } from 'sonner';
 import type { Session } from '@/types';
+import { SessionSchema } from '@/lib/schemas/sessionSchema';
 
-// Matches finalV0Data from SessionTracker.tsx
 interface FinalV0DataInput {
-  id: string;                 // nanoid() from tracker
   userId: string;
   title: string;
   session_type_id: string;
@@ -19,7 +18,11 @@ interface FinalV0DataInput {
   total_break_ms: number;
 }
 
-type CreateVars = FinalV0DataInput;
+interface CreateVarsWithId extends FinalV0DataInput {
+  id: string; // Pre-generated ID
+}
+
+type CreateVars = CreateVarsWithId;
 type CreateData = { docId: string };
 
 type CreateCtx = {
@@ -27,26 +30,26 @@ type CreateCtx = {
   previous?: Session[];
 };
 
-const createSessionOnFirebase = async (sessionData: CreateVars): Promise<CreateData> => {
+const createSessionOnFirebase = async (sessionData: CreateVarsWithId): Promise<CreateData> => {
   const user = auth.currentUser;
   if (!user) throw new Error('No authenticated user found');
 
-  const dataToSave = {
-    id: sessionData.id, // nanoid
-    userId: user.uid,
-    title: sessionData.title,
-    session_type_id: sessionData.session_type_id,
-    notes: sessionData.notes,
-    breaks: sessionData.breaks,
-    started_at: sessionData.started_at,
-    ended_at: sessionData.ended_at,
-    total_focus_ms: sessionData.total_focus_ms,
-    total_break_ms: sessionData.total_break_ms,
-    created_at: serverTimestamp(),
-  };
+  const { id, ...rest} = sessionData; // Separate ID from data
 
-  const docRef = await addDoc(collection(db, 'sessions'), dataToSave);
-  return { docId: docRef.id };
+  // SECURITY: Runtime Validation
+  // This throws an error immediately if data format is invalid (e.g. negative numbers)
+  const validData = SessionSchema.parse(rest);
+
+  // Use setDoc with Known ID (offline friendly)
+  const docRef = doc(db, 'sessions', id);
+
+  await setDoc(docRef, {
+    ...validData,
+    userId: user.uid,
+    created_at: serverTimestamp(),
+  })
+
+  return { docId: id };
 };
 
 export const useCreateSession = () => {
@@ -67,7 +70,7 @@ export const useCreateSession = () => {
       const date = newSession.started_at.split('T')[0]; // YYYY-MM-DD
 
       const optimisticSession: Session = {
-        id: newSession.id, // same nanoid
+        id: newSession.id,
         title: newSession.title,
         type: newSession.session_type_id,
         notes: newSession.notes,

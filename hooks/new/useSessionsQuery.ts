@@ -1,6 +1,6 @@
 // hooks/useSessionsQuery.ts
 import { useQuery, useQueryClient, } from '@tanstack/react-query';
-import { collection, query, where, orderBy, getDocs, onSnapshot, Timestamp } from 'firebase/firestore';
+import { collection, query, where, orderBy, getDocs, getDocsFromCache, onSnapshot, Timestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { Session } from '@/types';
 import { useEffect } from 'react';
@@ -39,17 +39,22 @@ const adaptDocToSession = (doc: any) => {
         date: new Date(startTime).toISOString().split('T')[0],
         // fromCache: doc.metadata.fromCache,
         // pending: doc.metadata.hasPendingWrites,
+        // Optional: Track pending state for UI indicators
+        // isPending: snapshot.metadata.hasPendingWrites 
     } as Session;
 };
 
+// ✅ CHANGED: This function now strictly reads from Local Cache 
+// to avoid overwriting pending writes.
+// The actual server data will arrive via the onSnapshot listener below.
 export const fetchSessions = async (userId: string): Promise<Session[]> => {
-    console.log('useSessionsQuery: Attempting to fetch for userId from new hook:', userId);
+    console.log('useSessionsQuery: Attempting to fetch from (onSnapshot):');
     if (!userId) return [];
 
     try {
         const sessionsRef = collection(db, 'sessions');
         const q = query(sessionsRef, where('userId', '==', userId), orderBy('started_at', 'desc'));
-        const querySnapshot = await getDocs(q);
+        const querySnapshot = await getDocsFromCache(q);
         // querySnapshot.docs.forEach(doc => console.log('Session data fromCache:', doc.metadata?.fromCache));
 
         let fromCacheCount = 0;
@@ -76,24 +81,33 @@ export const fetchSessions = async (userId: string): Promise<Session[]> => {
         return sessions;
     } catch (error) {
         console.error('useSessionsQuery: Error inside fetchSessions:', error);
-        throw error;
+        // throw error;
+        // ✅ FIX: Return empty array instead of throwing
+        // This allows React Query to show "success" state with 0 items
+        // while onSnapshot fetches the real data in the background.
+        return [];
     }
 };
 
 export const useSessionsQuery = (userId: string | undefined, enabled: boolean) => {
     const qc = useQueryClient();
+    const queryKey = ['sessions', userId];
 
-    // Start a real-time listener that seeds react-query cache and keeps it up-to-date.
+    // real-time listener
     useEffect(() => {
         if (!userId || !enabled) return;
 
         const sessionsRef = collection(db, 'sessions');
         const q = query(sessionsRef, where('userId', '==', userId), orderBy('started_at', 'desc'));
 
-        const unsubscribe = onSnapshot(q, (snapshot) => {
+        // This handles Initial Load + Offline Local + Online Sync
+        const unsubscribe = onSnapshot(q, { includeMetadataChanges: true }, (snapshot) => {
             // snapshot will return cached results immediately when offline
             const sessions = snapshot.docs.map(adaptDocToSession).filter(Boolean) as Session[];
-            qc.setQueryData(['sessions', userId], sessions);
+
+            // This updates the UI with the "Merged View" (Server + Pending Local Writes)
+            qc.setQueryData(queryKey, sessions);
+
             // for debugging
             logSessionsFetch({
                 source: 'snapshot',
@@ -110,18 +124,24 @@ export const useSessionsQuery = (userId: string | undefined, enabled: boolean) =
     }, [userId, enabled, qc]);
 
     return useQuery({
-        queryKey: ['sessions', userId],
-        // initial fetch only — after that onSnapshot will keep cache fresh
-        queryFn: () => fetchSessions(userId!),
+        queryKey: queryKey,
+        // Query Function: Only runs on initial mount.
+        // We use the "Cache Only" fetcher so we don't wipe pending data.
+        // queryFn: () => fetchSessions(userId!),
+
+        queryFn: () => {
+            return qc.getQueryData<Session[]>(queryKey) || [];
+        },
+
         enabled: !!userId && enabled,
-        staleTime: 1000 * 60 * 60, // 1 hour
-        gcTime: 1000 * 60 * 60 * 24, // 24 hours
+        staleTime: Infinity, // 1000 * 60 * 60, // 1 hour
+        gcTime: Infinity, // 1000 * 60 * 60 * 48, // 24 hours
         refetchOnMount: false,
         refetchOnWindowFocus: false,
-        refetchOnReconnect: false,
+        refetchOnReconnect: false, // Critical: Don't refetch on network restore
         retry: 1,
         networkMode: 'offlineFirst',
         // 🔑 IMPORTANT: sirf data change pe re-render
-        notifyOnChangeProps: ['data'],
+        // notifyOnChangeProps: ['data'],
     });
 };

@@ -13,7 +13,7 @@ export function formatError(err: unknown, fallback = 'An unexpected error occurr
         return err;
     }
 
-    // Optional: handle Firebase/Auth errors if you use them
+    // handle Firebase/Auth errors
     if (typeof err === 'object' && err !== null && 'code' in err) {
         const code = (err as { code?: string }).code;
         return `Error code: ${code ?? 'unknown'}`;

@@ -17,8 +17,9 @@ import { DEFAULT_SESSION_TYPES } from '@/config/sessionTypes.config';
 import type { Session } from '@/types';
 import { formatTimerDuration as formatTime } from '@/lib/timeUtils';
 import { EditableProps } from '@/types/typeDeclaration';
-import { nanoid } from 'nanoid';
 import { SafeMarkdown } from '@/components/SafeMarkdown';
+import { db } from '@/lib/firebase';
+import { doc, collection } from 'firebase/firestore';
 
 function EditableTitle({ value, onChange, disabled = false }: EditableProps) {
     const [isEditing, setIsEditing] = useState(false);
@@ -169,17 +170,22 @@ export default function SessionTracker() {
         const user = auth.currentUser;
         if (!user) return;
 
+        // 1. GENERATE ID CLIENT-SIDE (Secure & Offline Friendly)
+        // This creates a reference with a new auto-generated ID.
+        // It does NOT hit the network.
+        const newSessionId = doc(collection(db, 'sessions')).id;
+
         // Ensure any uncommitted notes are captured
         handleNotesCommit();
 
         // CLEAR LOCAL STORAGE ON END
         localStorage.removeItem('ds-active-notes-draft');
-        
+
         const { sessionTime, breakTime } = timerRef.current.endSession();
         const endTime = new Date().toISOString();
 
         const finalV0Data = {
-            id: nanoid(),
+            id: newSessionId,
             userId: user.uid,
             title: title,
             session_type_id: type,
