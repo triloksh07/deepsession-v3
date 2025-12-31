@@ -1,46 +1,48 @@
-import { Unplug, Ghost, RotateCcw } from 'lucide-react';
+import { Quote } from 'lucide-react';
 
 export function Problem() {
   return (
-    <section className="py-24 bg-secondary/20 border-y border-border">
+    <section className="py-24 bg-secondary/20 border-b border-border">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-16">
           <h2 className="text-3xl font-bold text-foreground mb-4">
-            Why deep work feels so hard
+            The real friction isn't time.
           </h2>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            It's not because you're lazy. It's because modern tools optimize for tasks, not thinking.
+            Most tools optimize time. Time is not the bottleneck. Cognitive continuity is.
           </p>
         </div>
 
-        <div className="grid md:grid-cols-3 gap-8">
-          {/* Problem 1 */}
+        <div className="grid md:grid-cols-2 gap-8">
           <div className="bg-card border border-border p-8 rounded-xl">
-            <Unplug className="text-destructive mb-4" size={32} />
-            <h3 className="text-xl font-bold text-foreground mb-3">The Context Penalty</h3>
+            <Quote className="text-blue-500 mb-4 opacity-50" size={24} />
+            <h3 className="text-xl font-bold text-foreground mb-3">"I lose momentum every time I stop."</h3>
             <p className="text-muted-foreground leading-relaxed">
-              "I lose momentum every time I stop." <br/><br/>
-              When you stop, your mental model evaporates. Restarting isn't just opening a laptop; it's reconstructing a complex graph of thoughts from scratch. This friction kills consistency.
+              Context dies between sessions. You remember what you did, but not why. Restarting feels like starting over.
             </p>
           </div>
 
-          {/* Problem 2 */}
           <div className="bg-card border border-border p-8 rounded-xl">
-            <Ghost className="text-blue-500 mb-4" size={32} />
-            <h3 className="text-xl font-bold text-foreground mb-3">Invisible Effort</h3>
+            <Quote className="text-blue-500 mb-4 opacity-50" size={24} />
+            <h3 className="text-xl font-bold text-foreground mb-3">"I worked today, but I don't feel progress."</h3>
             <p className="text-muted-foreground leading-relaxed">
-              "I worked all day, but I don't feel progress." <br/><br/>
-              You spent 6 hours debugging or researching. No tickets moved. No checkboxes clicked. Standard tools make this work look like "nothing," destroying your morale.
+              Effort is invisible. There's no narrative connecting yesterday's work to today's. No sense of accumulation.
             </p>
           </div>
 
-          {/* Problem 3 */}
           <div className="bg-card border border-border p-8 rounded-xl">
-            <RotateCcw className="text-emerald-500 mb-4" size={32} />
-            <h3 className="text-xl font-bold text-foreground mb-3">The Fade Out</h3>
+            <Quote className="text-blue-500 mb-4 opacity-50" size={24} />
+            <h3 className="text-xl font-bold text-foreground mb-3">"I can't resume deep work quickly."</h3>
             <p className="text-muted-foreground leading-relaxed">
-              "I start strong, then quit after 3 days." <br/><br/>
-              Productivity apps punish you for missing a day. They lack emotional closure. Without a sense of narrative continuity, you burn out and abandon the system.
+              Every session begins with mental archaeology — reconstructing what you were thinking, where you were headed.
+            </p>
+          </div>
+
+          <div className="bg-card border border-border p-8 rounded-xl">
+            <Quote className="text-blue-500 mb-4 opacity-50" size={24} />
+            <h3 className="text-xl font-bold text-foreground mb-3">"I fade after 3–5 days."</h3>
+            <p className="text-muted-foreground leading-relaxed">
+              No closure. No emotional loop. No continuity. Motivation drains when progress feels fragmented.
             </p>
           </div>
         </div>
