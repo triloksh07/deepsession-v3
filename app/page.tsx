@@ -5,6 +5,8 @@ import { Architecture } from './_components/sections/Architecture';
 import { UseCases } from './_components/sections/UseCases';
 import { QuickStart } from './_components/sections/QuickStart';
 import { Footer } from './_components/Footer';
+import { Problem } from './_components/sections/Problem';
+import { Protocol } from './_components/sections/Protocol';
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -14,20 +16,15 @@ export const metadata: Metadata = {
 
 function App() {
   return (
-    <div className="bg-slate-950">
+    <div className="bg-background text-foreground selection:bg-primary/20">
       <Navigation />
       <Hero />
-      <section id="features">
-        <Features />
+      <Problem />
+      <section id="protocol">
+        <Protocol />
       </section>
       <section id="architecture">
         <Architecture />
-      </section>
-      <section id="usecases">
-        <UseCases />
-      </section>
-      <section id="quickstart">
-        <QuickStart />
       </section>
       <Footer />
     </div>
