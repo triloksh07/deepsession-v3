@@ -30,7 +30,7 @@ export function Protocol() {
                 </p>
               </div>
               <div className="bg-card border border-border p-6 rounded-xl shadow-sm">
-                <p className="font-mono text-sm text-blue-500 mb-2">// Previous Session Context</p>
+                <p className="font-mono text-sm text-blue-500 mb-2">Previous Session Context</p>
                 <p className="text-sm text-muted-foreground">"Stopped at Auth Logic. The JWT token isn't persisting. Next: Check local storage logic."</p>
               </div>
             </div>
