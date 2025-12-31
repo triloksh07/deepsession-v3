@@ -1,54 +1,47 @@
-import { AlertCircle, ZapOff, Loader2 } from 'lucide-react';
+import { Unplug, Ghost, RotateCcw } from 'lucide-react';
 
 export function Problem() {
   return (
-    <section className="py-24 bg-secondary/30 border-y border-border">
+    <section className="py-24 bg-secondary/20 border-y border-border">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid md:grid-cols-2 gap-16 items-center">
-          <div>
-            <h2 className="text-3xl font-bold text-foreground mb-6">
-              The "Cold Start" Problem
-            </h2>
-            <div className="space-y-6">
-              <p className="text-lg text-muted-foreground">
-                You don't procrastinate because you're lazy. You procrastinate because the <strong>cognitive cost of loading context</strong> is too high.
-              </p>
-              <p className="text-lg text-muted-foreground">
-                Every time you close your laptop, your mental model evaporates. When you return, you spend 20 minutes just trying to remember where you left off.
-              </p>
-              <div className="flex items-center gap-3 text-destructive/80 font-medium pt-2">
-                <ZapOff size={20} />
-                <span>This is where momentum dies.</span>
-              </div>
-            </div>
+        <div className="text-center mb-16">
+          <h2 className="text-3xl font-bold text-foreground mb-4">
+            Why deep work feels so hard
+          </h2>
+          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+            It's not because you're lazy. It's because modern tools optimize for tasks, not thinking.
+          </p>
+        </div>
+
+        <div className="grid md:grid-cols-3 gap-8">
+          {/* Problem 1 */}
+          <div className="bg-card border border-border p-8 rounded-xl">
+            <Unplug className="text-destructive mb-4" size={32} />
+            <h3 className="text-xl font-bold text-foreground mb-3">The Context Penalty</h3>
+            <p className="text-muted-foreground leading-relaxed">
+              "I lose momentum every time I stop." <br/><br/>
+              When you stop, your mental model evaporates. Restarting isn't just opening a laptop; it's reconstructing a complex graph of thoughts from scratch. This friction kills consistency.
+            </p>
           </div>
 
-          {/* Visualizing the "Ramp Up" */}
-          <div className="relative bg-card border border-border rounded-xl p-8 shadow-sm">
-            <div className="space-y-4">
-              <div className="flex items-center justify-between text-sm text-muted-foreground mb-2">
-                <span>Typical Workflow</span>
-                <span className="text-destructive">High Friction</span>
-              </div>
-              
-              <div className="space-y-2">
-                <div className="h-2 bg-secondary rounded-full overflow-hidden">
-                  <div className="h-full w-1/4 bg-destructive/40"></div>
-                </div>
-                <div className="flex justify-between text-xs text-muted-foreground">
-                  <span>Open Laptop</span>
-                  <span>Trying to focus...</span>
-                  <span>Actual Work</span>
-                </div>
-              </div>
+          {/* Problem 2 */}
+          <div className="bg-card border border-border p-8 rounded-xl">
+            <Ghost className="text-blue-500 mb-4" size={32} />
+            <h3 className="text-xl font-bold text-foreground mb-3">Invisible Effort</h3>
+            <p className="text-muted-foreground leading-relaxed">
+              "I worked all day, but I don't feel progress." <br/><br/>
+              You spent 6 hours debugging or researching. No tickets moved. No checkboxes clicked. Standard tools make this work look like "nothing," destroying your morale.
+            </p>
+          </div>
 
-              <div className="mt-8 p-4 bg-destructive/10 rounded-lg border border-destructive/20 text-sm text-destructive">
-                <div className="flex gap-3">
-                  <Loader2 className="animate-spin shrink-0" size={18} />
-                  <p>"Wait, what was I debugging? Why did I leave this tab open? What's the next step?"</p>
-                </div>
-              </div>
-            </div>
+          {/* Problem 3 */}
+          <div className="bg-card border border-border p-8 rounded-xl">
+            <RotateCcw className="text-emerald-500 mb-4" size={32} />
+            <h3 className="text-xl font-bold text-foreground mb-3">The Fade Out</h3>
+            <p className="text-muted-foreground leading-relaxed">
+              "I start strong, then quit after 3 days." <br/><br/>
+              Productivity apps punish you for missing a day. They lack emotional closure. Without a sense of narrative continuity, you burn out and abandon the system.
+            </p>
           </div>
         </div>
       </div>
