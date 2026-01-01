@@ -13,7 +13,7 @@ export function Target() {
 
         <div className="bg-secondary/30 border border-border rounded-2xl p-8 md:p-12">
           <p className="text-xl text-center text-foreground font-medium mb-12 max-w-2xl mx-auto">
-            DeepSession is built for people whose work unfolds over time — not in one sitting.
+            DeepSession is for people whose work unfolds over time — not in one sitting.
           </p>
 
           <div className="grid md:grid-cols-2 gap-8">
@@ -22,9 +22,8 @@ export function Target() {
               <div>
                 <h3 className="font-bold text-foreground">The Non-Linear Thinker</h3>
                 <p className="text-muted-foreground mt-1 text-sm">
-                  You work on problems that don&apos;t move in straight lines.
-                  Your thinking branches, loops, and evolves.
-                  You need space to hold complexity, not flatten it.
+                  You work on problems that evolve as you think.
+                  Your progress isn&apos;t linear — and that&apos;s not a flaw.
                 </p>
               </div>
             </div>
@@ -34,8 +33,8 @@ export function Target() {
               <div>
                 <h3 className="font-bold text-foreground">The Session Worker</h3>
                 <p className="text-muted-foreground mt-1 text-sm">
-                  You work in deep, focused bursts. <br />
-                  Your best work happens when momentum carries forward — not when you restart from zero.
+                  You work in focused bursts.
+                  What matters is carrying momentum forward, not starting over.
                 </p>
               </div>
             </div>
@@ -46,8 +45,7 @@ export function Target() {
                 <h3 className="font-bold text-foreground">The Depth Seeker</h3>
                 <p className="text-muted-foreground mt-1 text-sm">
                   You value clarity over speed.
-                  Continuity over hustle.
-                  You care about preserving the thread of thought, not just finishing tasks.
+                  You&apos;d rather think well than move fast.
                 </p>
               </div>
             </div>
@@ -58,7 +56,7 @@ export function Target() {
                 <h3 className="font-bold text-foreground">The Long-Game Builder</h3>
                 <p className="text-muted-foreground mt-1 text-sm">
                   You know meaningful work compounds.
-                  Progress isn&apos;t measured in days — it&apos;s built across sessions of focused effort.
+                  Progress lives across sessions, not sprints.
                 </p>
               </div>
             </div>
