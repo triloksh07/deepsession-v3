@@ -1,34 +1,32 @@
 import { Navigation } from './_components/Navigation';
 import { Hero } from './_components/sections/Hero';
-import { Features } from './_components/sections/Features';
 import { Architecture } from './_components/sections/Architecture';
-import { UseCases } from './_components/sections/UseCases';
-import { QuickStart } from './_components/sections/QuickStart';
+import { Problem } from './_components/sections/Problem';
+import { Positioning } from './_components/sections/Positioning';
+import { Protocol } from './_components/sections/Protocol';
+import { Target } from './_components/sections/Target';
 import { Footer } from './_components/Footer';
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "DeepSession - Track | Analyse | Improve",
-  description: "Boost your productivity with AI-driven focus sessions, personalized insights, and seamless task management.",
+  description: "Boost your productivity with AI-driven focus sessions and personalized insights",
 };
 
 function App() {
   return (
-    <div className="bg-slate-950">
+    <div className="bg-background text-foreground selection:bg-primary/20">
       <Navigation />
       <Hero />
-      <section id="features">
-        <Features />
+      <Problem />
+      <Positioning />
+      <section id="protocol">
+        <Protocol />
       </section>
       <section id="architecture">
         <Architecture />
       </section>
-      <section id="usecases">
-        <UseCases />
-      </section>
-      <section id="quickstart">
-        <QuickStart />
-      </section>
+      <Target />
       <Footer />
     </div>
   );

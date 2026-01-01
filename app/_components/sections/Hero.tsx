@@ -1,92 +1,51 @@
-import { ArrowRight, Play } from 'lucide-react';
+import { ArrowRight, BrainCircuit, Activity } from 'lucide-react';
 import Link from 'next/link';
 
 export function Hero() {
   return (
-    <section className="min-h-screen bg-linear-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center px-4 sm:px-6 lg:px-8 pt-32 pb-20">
-      <div className="max-w-6xl mx-auto w-full">
-        <div className="grid md:grid-cols-2 gap-12 items-center">
-          <div className="space-y-8">
-            <div className="inline-flex items-center gap-2 bg-blue-500/10 border border-blue-500/20 rounded-full px-4 py-2">
-              <span className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></span>
-              <span className="text-sm text-blue-300 font-medium">Deep Work Reimagined</span>
-            </div>
+    <section className="relative min-h-[90vh] flex items-center justify-center px-4 sm:px-6 lg:px-8 overflow-hidden bg-background border-b border-border">
+      {/* Subtle Grid Background */}
+      <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808008_1px,transparent_1px)] bg-size-[24px_24px]"></div>
 
-            <div className="space-y-4">
-              <h1 className="text-5xl sm:text-6xl font-bold text-white leading-tight">
-                Track Deep Work,
-                <span className="text-transparent bg-clip-text bg-linear-to-r from-blue-400 to-emerald-400"> Offline</span>
-              </h1>
-              <p className="text-xl text-slate-300 leading-relaxed">
-                DeepSession is a modern web app that helps you track focus sessions with an offline-first architecture. Start anywhere, sync everywhere.
-              </p>
-            </div>
-
-            <div className="flex flex-col sm:flex-row gap-4 pt-4">
-              <Link href="/dashboard" className="inline-flex items-center gap-2">
-                <button className="inline-flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-8 rounded-lg transition-all duration-200 shadow-lg hover:shadow-xl hover:cursor-pointer">
-                  <Play size={20} />
-                  Get Started Free
-                </button>
-              </Link>
-              <button className="inline-flex items-center justify-center gap-2 bg-slate-700 hover:bg-slate-600 text-white font-semibold py-3 px-8 rounded-lg transition-all duration-200 border border-slate-600">
-                Learn More
-                <ArrowRight size={20} />
-              </button>
-            </div>
-
-            <div className="grid grid-cols-3 gap-6 pt-8 border-t border-slate-700">
-              <div>
-                <p className="text-3xl font-bold text-white">100%</p>
-                <p className="text-sm text-slate-400">Offline First</p>
-              </div>
-              <div>
-                <p className="text-3xl font-bold text-white">Instant</p>
-                <p className="text-sm text-slate-400">Cross-Device Sync</p>
-              </div>
-              <div>
-                <p className="text-3xl font-bold text-white">Zero</p>
-                <p className="text-sm text-slate-400">Data Loss</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="hidden md:flex justify-center">
-            <div className="relative w-full max-w-md">
-              <div className="absolute inset-0 bg-linear-to-r from-blue-500 to-emerald-500 rounded-2xl blur-3xl opacity-20"></div>
-              <div className="relative bg-slate-800 border border-slate-700 rounded-2xl p-8 backdrop-blur-sm shadow-2xl">
-                <div className="space-y-6">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-white font-semibold">Current Session</h3>
-                    <div className="w-3 h-3 bg-emerald-500 rounded-full animate-pulse"></div>
-                  </div>
-
-                  <div className="text-center">
-                    <div className="text-6xl font-bold text-transparent bg-clip-text bg-linear-to-r from-blue-400 to-emerald-400 font-mono">
-                      2:45:32
-                    </div>
-                    <p className="text-slate-400 text-sm mt-2">Deep Work Session</p>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="bg-slate-700/50 rounded-lg p-4">
-                      <p className="text-xs text-slate-400">Status</p>
-                      <p className="text-white font-semibold mt-1">Active</p>
-                    </div>
-                    <div className="bg-slate-700/50 rounded-lg p-4">
-                      <p className="text-xs text-slate-400">Syncing</p>
-                      <p className="text-white font-semibold mt-1">All Devices</p>
-                    </div>
-                  </div>
-
-                  <button className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2 rounded-lg transition-colors">
-                    End Session
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
+      <div className="relative max-w-4xl mx-auto w-full text-center z-10 pt-20">
+        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-secondary/50 border border-border mb-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+          {/* <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></span> */}
+          <Activity size={14} className="text-emerald-500" />
+          <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Cognitive Continuity System</span>
         </div>
+
+        <h1 className="text-5xl md:text-7xl font-bold tracking-tight text-foreground mb-6 animate-in fade-in slide-in-from-bottom-6 duration-700 leading-tight">
+          Continue where your <br className="hidden md:block" />
+          <span className="text-transparent bg-clip-text bg-linear-to-r from-blue-500 to-emerald-500">thinking left off.</span>
+        </h1>
+
+        <p className="text-xl text-muted-foreground max-w-2xl mx-auto mb-10 leading-relaxed animate-in fade-in slide-in-from-bottom-8 duration-700 delay-100">
+          DeepSession is a cognitive continuity system for work that unfolds over time.
+        </p>
+
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-4 animate-in fade-in slide-in-from-bottom-10 duration-700 delay-200">
+          <Link href="/dashboard" className="w-full sm:w-auto">
+            <button className="w-full inline-flex items-center justify-center gap-2 bg-foreground text-background hover:bg-foreground/90 font-medium py-3 px-8 rounded-lg transition-all">
+              <BrainCircuit size={18} />
+              Enter Focus State
+            </button>
+          </Link>
+          <Link href="/manifesto" className="w-full sm:w-auto">
+            <button className="w-full inline-flex items-center justify-center gap-2 bg-secondary hover:bg-secondary/80 text-secondary-foreground font-medium py-3 px-8 rounded-lg transition-all border border-border">
+              Read the Philosophy
+              <ArrowRight size={18} />
+            </button>
+          </Link>
+        </div>
+
+        {/* Micro-line (under sub) */}
+        {/* <div className="mt-20 text-muted-foreground gap-8 border-t border-border/50 pt-0 opacity-70">
+          Not a task manager. Not a timer. <br /> A place your thinking can return to.
+        </div> */}
+        <p className="mt-16 text-sm text-muted-foreground opacity-70">
+          {/* Not a todo list. Not a timer. A thinking companion. */}
+          Not a task manager. Not a timer. <br /> A place your thinking can return to.
+        </p>
       </div>
     </section>
   );
