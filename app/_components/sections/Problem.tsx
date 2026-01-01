@@ -9,12 +9,12 @@ export function Problem() {
             The real friction isn't time.
           </h2>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            Most tools optimize time. Time is not the bottleneck. Cognitive continuity is.
+            It is the loss of context.
           </p>
         </div>
 
         <div className="grid md:grid-cols-2 gap-8">
-          <div className="bg-card border border-border p-8 rounded-xl">
+          <div className="bg-card border border-border p-8 rounded-xl hover:border-blue-500/30 transition-colors">
             <Quote className="text-blue-500 mb-4 opacity-50" size={24} />
             <h3 className="text-xl font-bold text-foreground mb-3">"I lose momentum every time I stop."</h3>
             <p className="text-muted-foreground leading-relaxed">
@@ -22,7 +22,7 @@ export function Problem() {
             </p>
           </div>
 
-          <div className="bg-card border border-border p-8 rounded-xl">
+          <div className="bg-card border border-border p-8 rounded-xl hover:border-blue-500/30 transition-colors">
             <Quote className="text-blue-500 mb-4 opacity-50" size={24} />
             <h3 className="text-xl font-bold text-foreground mb-3">"I worked today, but I don't feel progress."</h3>
             <p className="text-muted-foreground leading-relaxed">
@@ -30,7 +30,7 @@ export function Problem() {
             </p>
           </div>
 
-          <div className="bg-card border border-border p-8 rounded-xl">
+          <div className="bg-card border border-border p-8 rounded-xl hover:border-blue-500/30 transition-colors">
             <Quote className="text-blue-500 mb-4 opacity-50" size={24} />
             <h3 className="text-xl font-bold text-foreground mb-3">"I can't resume deep work quickly."</h3>
             <p className="text-muted-foreground leading-relaxed">
@@ -38,7 +38,7 @@ export function Problem() {
             </p>
           </div>
 
-          <div className="bg-card border border-border p-8 rounded-xl">
+          <div className="bg-card border border-border p-8 rounded-xl hover:border-blue-500/30 transition-colors">
             <Quote className="text-blue-500 mb-4 opacity-50" size={24} />
             <h3 className="text-xl font-bold text-foreground mb-3">"I fade after 3–5 days."</h3>
             <p className="text-muted-foreground leading-relaxed">

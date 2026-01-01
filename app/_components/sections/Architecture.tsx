@@ -2,13 +2,13 @@ import { Database, WifiOff, ShieldCheck } from 'lucide-react';
 
 export function Architecture() {
   return (
-    <section className="py-24 bg-secondary/20 border-t border-border">
+    <section className="py-24 bg-background border-t border-border">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="mb-16">
+        <div className="text-center mb-16">
           <h2 className="text-3xl font-bold text-foreground mb-4">
             Engineered for Silence
           </h2>
-          <p className="text-xl text-muted-foreground max-w-2xl">
+          <p className="text-xl text-muted-foreground">
             We built DeepSession to be invisible. It works when the internet doesn't.
           </p>
         </div>
