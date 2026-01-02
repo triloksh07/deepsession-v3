@@ -31,7 +31,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea'; // IMPORTED
 import { useDashboard } from '../_components/DashboardProvider';
 import { SafeMarkdown } from '@/components/SafeMarkdown';
-import { GroupedVirtuoso } from "react-virtuoso";
+import { Virtuoso } from "react-virtuoso";
 
 const sessionTypeMap = new Map<string, { label: string; color: string }>(
   DEFAULT_SESSION_TYPES.map((type) => [type.id, { label: type.label, color: type.color }])
@@ -52,6 +52,7 @@ function SessionsListSkeleton() {
 }
 
 // --- FIX: MEMOIZE THE HEAVY LIST ---
+// This prevents re-rendering the entire Markdown list when the parent state (Edit Dialog) changes.
 const SessionsContent = memo(
   function SessionsContent({
     onEdit,
@@ -60,45 +61,11 @@ const SessionsContent = memo(
       onEdit: (s: Session) => void;
       onRequestDelete: (s: Session) => void;
     }) {
-    const { sessions: sessionList } = useDashboard();
-    const sessions = useMemo(() => {
-      return sessionList ?? [];
-    }, [sessionList]);
-
-    // Memoize the flat list data structure for GroupedVirtuoso
-    // It needs: 
-    // 1. groupCounts: [2, 5, 1] (2 items in day 1, 5 in day 2...)
-    // 2. flatSessions: [s1, s2, s3...] (All sessions flattened)
-    // 3. groupDates: ['2023-10-01', '2023-09-30'...] (Headers)
-    const { groupCounts, flatSessions, groupDates } = useMemo(() => {
-      const list = sessions ?? [];
-
-      // 1. Group
-      const groups = list.reduce((acc: Record<string, Session[]>, session) => {
-        const date = session.date;
-        if (!acc[date]) acc[date] = [];
-        acc[date].push(session);
-        return acc;
-      }, {});
-
-      // 2. Sort Dates
-      const sortedDates = Object.keys(groups).sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
-
-      // 3. Flatten
-      const counts: number[] = [];
-      const flat: Session[] = [];
-
-      sortedDates.forEach((date) => {
-        // Sort sessions inside the group
-        const sortedGroup = groups[date].sort((a, b) => b.startTime - a.startTime);
-        counts.push(sortedGroup.length);
-        flat.push(...sortedGroup);
-      });
-
-      return { groupCounts: counts, flatSessions: flat, groupDates: sortedDates };
+    const { sessions } = useDashboard();
+    const sessionList = useMemo(() => {
+      return sessions ?? [];
     }, [sessions]);
 
-    // Formatters (Moved inside or kept outside, fine here)
     const formatTime = (milliseconds: number) => {
       const totalSeconds = Math.floor(milliseconds / 1000);
       const hours = Math.floor(totalSeconds / 3600);
@@ -121,7 +88,19 @@ const SessionsContent = memo(
       return new Date(timestamp).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
     };
 
-    if (!sessions || sessions.length === 0) {
+    // Re-calculate these only when sessionList changes, not when parent re-renders
+    const groupedSessions = React.useMemo(() => {
+      return sessionList.reduce((groups: Record<string, Session[]>, session) => {
+        const date = session.date;
+        if (!groups[date]) groups[date] = [];
+        groups[date].push(session);
+        return groups;
+      }, {});
+    }, [sessionList]);
+
+    const sortedDates = Object.keys(groupedSessions).sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
+
+    if (sessionList.length === 0) {
       return (
         <div className="text-center py-8 text-muted-foreground">
           <Clock className="mx-auto h-12 w-12 mb-4 opacity-50" />
@@ -131,96 +110,76 @@ const SessionsContent = memo(
     }
 
     return (
-      // Height is handled by useWindowScroll, but we need a wrapper min-height to prevent collapse
-      <div className="min-h-[500px]">
-        <GroupedVirtuoso
-          useWindowScroll
-          overscan={500}
-          groupCounts={groupCounts}
+      <div className="space-y-6">
+        {sortedDates.map((date) => (
+          <div key={date} className="space-y-3">
+            <div className="flex items-center space-x-2 text-muted-foreground border-b pb-2">
+              <Calendar className="h-4 w-4" />
+              <span>{formatDate(date)}</span>
+              <span className="text-xs">({groupedSessions[date].length} session{groupedSessions[date].length !== 1 ? 's' : ''})</span>
+            </div>
 
-          // Renders the Date Header
-          groupContent={(index) => {
-            const date = groupDates[index];
-            const count = groupCounts[index];
-            return (
-
-              // 1. STICKY OFFSET: 'top-14' (3.5rem) accounts for main Dashboard Navbar. 
-              //    Adjust this value (e.g. top-16, top-0) based on your actual nav height.
-              // 2. Z-INDEX: 'z-20' ensures it stays above the session cards (usually z-0 or z-10).
-              // 3. SOLID BG: Removed backdrop-blur in favor of solid background to prevent "bleed through".
-
-              <div className="sticky top-0 md:top-14 z-20 pt-4 pb-2 bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/60 shadow-sm">
-                {/* Inner Container for alignment */}
-                <div className="flex items-center space-x-2 text-muted-foreground border-b pb-2">
-                  <Calendar className="h-4 w-4" />
-                  <span>{formatDate(date)}</span>
-                  <span className="text-xs bg-muted px-2 py-0.5 rounded-full">({count} session{count !== 1 ? 's' : ''})</span>
-                </div>
-              </div>
-            );
-          }}
-
-          // Renders the Session Card
-          itemContent={(index) => {
-            const session = flatSessions[index];
-            const typeInfo = getSessionTypeInfo(session.type);
-
-            return (
-              <div className="pb-3"> {/* Spacing between cards */}
-                <Card className="transition-shadow hover:shadow-md">
-                  <CardContent className="p-4 grid grid-cols-2 gap-2">
-                    <div className="col-span-2 flex items-start justify-between mb-3">
-                      <div className="flex justify-center items-center space-x-3">
-                        <div className="flex-1">
-                          <h3 className="font-medium mb-1 truncate">{session.title}</h3>
-                          <div className="flex items-center space-x-2 text-muted-foreground">
-                            <span>{formatDateTime(session.startTime)} - {formatDateTime(session.endTime)}</span>
+            <div className="space-y-3">
+              {groupedSessions[date]
+                .sort((a, b) => b.startTime - a.startTime)
+                .map((session) => {
+                  const typeInfo = getSessionTypeInfo(session.type);
+                  return (
+                    <Card key={`${session.id}-${session.startTime}`} className="transition-shadow hover:shadow-md">
+                      <CardContent className="p-4 grid grid-cols-2 gap-2">
+                        <div className="col-span-2 flex items-start justify-between mb-3">
+                          <div className="flex justify-center items-center space-x-3">
+                            <div className="flex-1">
+                              <h3 className="font-medium mb-1 truncate">{session.title}</h3>
+                              <div className="flex items-center space-x-2 text-muted-foreground">
+                                <span>{formatDateTime(session.startTime)} - {formatDateTime(session.endTime)}</span>
+                              </div>
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    </div>
 
-                    <div className="col-span-2 flex items-center justify-start space-x-4 mb-3 text-muted-foreground">
-                      <div className="flex items-center space-x-1">
-                        <Clock className="h-4 w-4" />
-                        <span>Focus: {formatTime(session.sessionTime)}</span>
-                      </div>
-                      {session.breakTime > 0 && (
-                        <div className="flex items-center space-x-1">
-                          <Clock className="h-4 w-4" />
-                          <span>Break: {formatTime(session.breakTime)}</span>
+                        <div className="col-span-2 flex items-center justify-start space-x-4 mb-3 text-muted-foreground">
+                          <div className="flex items-center space-x-1">
+                            <Clock className="h-4 w-4" />
+                            <span>Focus: {formatTime(session.sessionTime)}</span>
+                          </div>
+                          {session.breakTime > 0 && (
+                            <div className="flex items-center space-x-1">
+                              <Clock className="h-4 w-4" />
+                              <span>Break: {formatTime(session.breakTime)}</span>
+                            </div>
+                          )}
                         </div>
-                      )}
-                    </div>
 
-                    {session.notes && (
-                      <div className="col-span-2 flex items-start space-x-2 text-muted-foreground mt-2">
-                        <FileText className="h-4 w-4 mt-1 shrink-0" />
-                        <div className="flex-1 text-sm overflow-hidden">
-                          <SafeMarkdown content={session.notes} />
+                        {session.notes && (
+                          <div className="col-span-2 flex items-start space-x-2 text-muted-foreground mt-2">
+                            <FileText className="h-4 w-4 mt-1 shrink-0" />
+                            <div className="flex-1 text-sm overflow-hidden">
+                              <SafeMarkdown content={session.notes} />
+                            </div>
+                          </div>
+                        )}
+
+                        <div className="col-span-2 relative flex items-center justify-between mt-4">
+                          <Badge variant="default" className="capitalize">
+                            {typeInfo.label}
+                          </Badge>
+                          <div className="flex items-center justify-center space-x-2">
+                            <Button variant="destructive" className="p-1" onClick={() => onRequestDelete(session)}>
+                              <Trash2 size={16} />
+                            </Button>
+                            <Button onClick={() => onEdit(session)} className="p-1" variant="ghost">
+                              <Edit size={16} />
+                            </Button>
+                          </div>
                         </div>
-                      </div>
-                    )}
-
-                    <div className="col-span-2 relative flex items-center justify-between mt-4">
-                      <Badge variant="default" className="capitalize" style={{ backgroundColor: typeInfo.color }}>
-                        {typeInfo.label}
-                      </Badge>
-                      <div className="flex items-center justify-center space-x-2">
-                        <Button variant="destructive" className="p-1 h-8 w-8" onClick={() => onRequestDelete(session)}>
-                          <Trash2 size={16} />
-                        </Button>
-                        <Button onClick={() => onEdit(session)} className="p-1 h-8 w-8" variant="ghost">
-                          <Edit size={16} />
-                        </Button>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-            );
-          }}
-        />
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+            </div>
+          </div>
+        ))}
       </div>
     );
   }
