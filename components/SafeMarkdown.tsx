@@ -1,4 +1,5 @@
 import React from 'react';
+import { memo } from 'react';
 import ReactMarkdown from 'react-markdown';
 import rehypeSanitize, { defaultSchema } from 'rehype-sanitize';
 
@@ -12,16 +13,19 @@ const securitySchema = {
   attributes: {
     ...defaultSchema.attributes,
     // Allow className for syntax highlighting if you add it later
-    code: [['className']], 
+    code: [['className']],
   },
   protocols: {
     ...defaultSchema.protocols,
     // STRICT whitelist: block javascript:, data:, vbscript:
-    href: ['http', 'https', 'mailto'], 
+    href: ['http', 'https', 'mailto'],
   },
 };
 
-export const SafeMarkdown = ({ content, className }: SafeMarkdownProps) => {
+// The 'memo' is crucial here. 
+// Without it, Virtualization unmounting/mounting items might trigger 
+// expensive re-calculations on neighbor items.
+export const SafeMarkdown = memo(({ content, className }: SafeMarkdownProps) => {
   if (!content) return null;
 
   return (
@@ -43,4 +47,6 @@ export const SafeMarkdown = ({ content, className }: SafeMarkdownProps) => {
       </ReactMarkdown>
     </div>
   );
-};
+}, (prev, next) => prev.content === next.content);
+
+SafeMarkdown.displayName = 'SafeMarkdown';
