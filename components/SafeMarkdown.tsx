@@ -48,3 +48,5 @@ export const SafeMarkdown = memo(({ content, className }: SafeMarkdownProps) => 
     </div>
   );
 }, (prev, next) => prev.content === next.content);
+
+SafeMarkdown.displayName = 'SafeMarkdown';
