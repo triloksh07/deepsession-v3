@@ -22,9 +22,8 @@ export const SessionSchema = z.object({
     // Strict structure for breaks
     breaks: z.array(
         z.object({
-            start: z.number().int(),
-            end: z.number().int(),
-            duration: z.number().int().nonnegative(),
+            start: z.string(),
+            end: z.string(),
         })
     ).default([]),
 
@@ -32,3 +31,22 @@ export const SessionSchema = z.object({
 
 // Infer the type from the schema automatically
 export type CreateSessionInput = z.infer<typeof SessionSchema>;
+
+
+/** For future iterations (needs codebase refactor)
+ // The "Clean" Schema
+breaks: z.array(
+    z.object({
+        // Automatically convert ISO string -> Unix Timestamp (Number)
+        start: z.coerce.date().transform(date => date.getTime()),
+        end: z.coerce.date().transform(date => date.getTime()),
+        
+        // If duration is missing, calculate it automatically
+        duration: z.number().int().nonnegative().optional()
+    }).transform(data => ({
+        ...data,
+        // Ensure duration exists even if frontend didn't send it
+        duration: data.duration ?? (data.end - data.start)
+    }))
+).default([]),
+ */

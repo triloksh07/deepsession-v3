@@ -170,19 +170,33 @@ export default function SessionTracker() {
         const user = auth.currentUser;
         if (!user) return;
 
-        // 1. GENERATE ID CLIENT-SIDE (Secure & Offline Friendly)
+        // GENERATE ID CLIENT-SIDE (Secure & Offline Friendly)
         // This creates a reference with a new auto-generated ID.
-        // It does NOT hit the network.
+        
+        // 1. GENERATE ID & SNAPSHOT TIME
         const newSessionId = doc(collection(db, 'sessions')).id;
+        const endTimeISO = new Date().toISOString(); 
 
-        // Ensure any uncommitted notes are captured
+        // 2. SANITIZE BREAKS (The Logic Fix)
+        // We keep them as Strings, but we ensure 'end' is never undefined.
+        const sanitizedBreaks = breaks.map((b) => {
+            // If the break has no 'end', use the session's end time.
+            const finalEnd = b.end || endTimeISO;
+            
+            return {
+                start: b.start,
+                end: finalEnd,
+                // Optional: We can still calculate duration for the DB if you ever uncomment that field
+                // duration: new Date(finalEnd).getTime() - new Date(b.start).getTime() 
+            };
+        });
+
+        // 3. COMMIT NOTES & TIMER
         handleNotesCommit();
-
         // CLEAR LOCAL STORAGE ON END
         localStorage.removeItem('ds-active-notes-draft');
-
         const { sessionTime, breakTime } = timerRef.current.endSession();
-        const endTime = new Date().toISOString();
+        // const endTime = new Date().toISOString();
 
         const finalV0Data = {
             id: newSessionId,
@@ -190,9 +204,9 @@ export default function SessionTracker() {
             title: title,
             session_type_id: type,
             notes: draftNotes || notes || "", // Prefer draft
-            breaks: breaks,
+            breaks: sanitizedBreaks,
             started_at: sessionStartTime,
-            ended_at: endTime,
+            ended_at: endTimeISO,
             total_focus_ms: sessionTime,
             total_break_ms: breakTime,
         };
