@@ -11,6 +11,7 @@ import InstallPWAButton from '@/components/InstallPWAButton';
 import { Toaster } from "@/components/ui/sonner";
 import { NetworkStatusHandler } from '@/components/NetworkStatusHandler';
 import { Analytics } from '@vercel/analytics/next';
+import { SpeedInsights } from '@vercel/speed-insights/next';
 import ServiceWorkerRegister from '@/components/serviceWorker'
 // import { SkeletonProvider } from "react-skeletonify";
 
@@ -82,6 +83,7 @@ export default async function RootLayout({
                 <ServiceWorkerRegister />
                 {/* 4. Pass nonce to Analytics (if it supports it, though often it auto-detects) */}
                 <Analytics />
+                <SpeedInsights />
               </AuthProvider>
             </Providers>
           </ ThemeProvider>
