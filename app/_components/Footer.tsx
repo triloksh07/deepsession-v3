@@ -1,3 +1,4 @@
+import Link from 'next/link'
 export function Footer() {
   return (
     <footer className="bg-background border-t border-border py-12">
@@ -7,9 +8,9 @@ export function Footer() {
           Cognitive Continuity System v1.0
         </p>
         <div className="flex justify-center gap-6 mt-6 text-sm text-muted-foreground">
-          <a href="#" className="hover:text-foreground transition-colors">Manifesto</a>
-          <a href="#" className="hover:text-foreground transition-colors">Login</a>
-          <a href="#" className="hover:text-foreground transition-colors">GitHub</a>
+          <Link href="/manifesto" className="hover:text-foreground transition-colors">Manifesto</Link>
+          <Link href="/login" className="hover:text-foreground transition-colors">Login</Link>
+          <Link href="https://github.com/triloksh07/deepsession-v3" target="_blank" className="hover:text-foreground transition-colors">GitHub</Link>
         </div>
       </div>
     </footer>

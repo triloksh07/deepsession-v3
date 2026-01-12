@@ -124,6 +124,20 @@ export default function DashboardContent() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Today's Activity Breakdown */}
+        {Object.keys(typeBreakdown).length == 0 &&
+          <Card>
+            <CardHeader>
+              <CardTitle>Today&apos;s Activity</CardTitle>
+            </CardHeader>
+          <CardContent className="text-center py-8">
+            <Clock className="mx-auto h-10 w-10 mb-4 text-muted-foreground opacity-50" />
+            {/* <h3 className="font-medium mb-2"></h3> */}
+            <p className="text-muted-foreground mb-4">
+            No Activity
+            </p>
+          </CardContent>
+        </Card>
+        }
         {Object.keys(typeBreakdown).length > 0 && (
           <Card>
             <CardHeader>

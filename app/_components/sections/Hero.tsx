@@ -42,8 +42,7 @@ export function Hero() {
         {/* <div className="mt-20 text-muted-foreground gap-8 border-t border-border/50 pt-0 opacity-70">
           Not a task manager. Not a timer. <br /> A place your thinking can return to.
         </div> */}
-        <p className="mt-16 text-sm text-muted-foreground opacity-70">
-          {/* Not a todo list. Not a timer. A thinking companion. */}
+        <p className="mt-16 mb-16 md:mb-0 text-sm text-muted-foreground opacity-70">
           Not a task manager. Not a timer. <br /> A place your thinking can return to.
         </p>
       </div>
