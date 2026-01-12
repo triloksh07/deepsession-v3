@@ -248,7 +248,7 @@ export default function SessionTracker() {
                                         onChange={(e) => setSessionTitle(e.target.value)}
                                         placeholder="What are you working on?"
                                         autoFocus
-                                        className="w-full bg-[#2a2a2a] text-white placeholder-gray-400 rounded-lg px-4 py-3 mb-6 border border-transparent focus:border-[#8A2BE2] focus:ring-0 outline-none"
+                                        className="w-full dark:bg-[#2a2a2a] dark:text-white placeholder-gray-400 rounded-lg px-4 py-3 mb-6 border border-transparent focus:border-[#8A2BE2] focus:ring-0 outline-none"
                                     />
                                 </div>
                                 <div className="space-y-2">

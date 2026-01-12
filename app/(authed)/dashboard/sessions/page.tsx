@@ -149,9 +149,9 @@ const SessionsContent = memo(
               // 2. Z-INDEX: 'z-20' ensures it stays above the session cards (usually z-0 or z-10).
               // 3. SOLID BG: Removed backdrop-blur in favor of solid background to prevent "bleed through".
 
-              <div className="sticky top-0 md:top-14 z-20 pt-4 pb-2 bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/60 shadow-sm">
+              <div className="sticky z-20 pt-16 pb-2 bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/60 shadow-sm">
                 {/* Inner Container for alignment */}
-                <div className="flex items-center space-x-2 text-muted-foreground border-b pb-2">
+                <div className="flex items-center space-x-2 text-muted-foreground pt-2 pb-0">
                   <Calendar className="h-4 w-4" />
                   <span>{formatDate(date)}</span>
                   <span className="text-xs bg-muted px-2 py-0.5 rounded-full">({count} session{count !== 1 ? 's' : ''})</span>

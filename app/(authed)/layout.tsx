@@ -9,7 +9,7 @@
 
 import type { Metadata } from 'next'
 import DashboardClientLayout from './dashboard/layout' // <- client layout (already created)
-import Navbar from './dashboard/_components/Navbar3';
+import Navbar from './dashboard/_components/Navbar';
 
 export const metadata: Metadata = {
   title: 'DeepSession v3 — Dashboard',
