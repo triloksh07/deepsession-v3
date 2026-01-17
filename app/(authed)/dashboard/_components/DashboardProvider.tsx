@@ -65,10 +65,11 @@ export default function DashboardProvider({
   // const deleteSessionMutation = useDeleteSession(userId);
 
   const isLoading = loadingSessions || loadingGoals;
+  // const isLoading = false;
   const isError = errSessions || errGoals;
   const error = sessionsError || goalsError; // Get the first error
 
-  const value: DashboardContextType = {
+  const value: DashboardContextType = React.useMemo(() => ({
     userId,
     sessions: sessionsData ?? [],
     goals: goalsData ?? [],
@@ -81,20 +82,36 @@ export default function DashboardProvider({
     // ✅ expose session mutations
     // updateSession: (input) => updateSessionMutation.mutate(input),
     // deleteSession: (id) => deleteSessionMutation.mutate(id),
-  };
+  }), [
+    userId, sessionsData, goalsData, loadingSessions, loadingGoals,
+    sessionsError, goalsError, errSessions, errGoals
+  ]);
 
-  // Prevent rendering children until initial data is available.
-  // This allows Suspense boundaries in consuming components to show fallbacks.
-  if (isLoading && (!sessionsData || !goalsData)) {
-    // Skeleton fallback
-    return (
-      <div className="p-6 space-y-4">
-        <SkeletonBlock className={'h-40 w-screen'} />
-        <SkeletonBlock className={'h-80 w-screen'} />
-        <SkeletonBlock className={'h-200 w-screen'} />
-      </div>
-    );; // or a minimal loading spinner if desired
-  }
+  // ✅ OPTIMIZED CHECK:
+  // Only block the UI if we are loading AND we have absolutely no data to show.
+  // If we have stale/cached data, show that instead of the skeleton.
+  const hasNoData = (!sessionsData || sessionsData.length === 0) && (!goalsData || goalsData.length === 0);
+
+  // Note: We use length === 0 check with caution. 
+  // If user truly has 0 sessions, we don't want to get stuck in Skeleton.
+  // Ideally: if (isLoading && sessionsData === undefined)
+
+
+  // ❌ REMOVED: The blocking "if (isLoading) return <Skeleton />" block.
+  // We want to render children immediately so the Navbar/Sidebar appears instantly.
+  // The children (SessionLog, GoalsPage) will handle their own "is data ready?" check.
+
+  // if (isLoading && (sessionsData === undefined || goalsData === undefined)) {
+  //   // Skeleton fallback
+  //   // TODO: We implement better skeleton later
+  //   return (
+  //     <div className="p-6 space-y-4">
+  //       <SkeletonBlock className={'h-40 w-screen'} />
+  //       <SkeletonBlock className={'h-80 w-screen'} />
+  //       <SkeletonBlock className={'h-200 w-screen'} />
+  //     </div>
+  //   );
+  // }
 
   return (
     <DashboardContext.Provider value={value}>
