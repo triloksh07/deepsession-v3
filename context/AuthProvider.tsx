@@ -9,10 +9,10 @@ import { setPersistence, browserLocalPersistence } from 'firebase/auth'
 import { useSyncActiveSession } from "@/hooks/useSyncActiveSession";
 import { useQueryClient } from '@tanstack/react-query';
 
-import { fetchSessions } from '@/hooks/useSessionsQuery';
+import { fetchSessions } from '@/hooks/CRUD/useSessionsQuery';
 // import { useSessionsQuery } from '@/hooks/new/SessionQuery';
 
-import { fetchGoals } from '@/hooks/useGoalsQuery';
+import { fetchGoals } from '@/hooks/CRUD/useGoalsQuery';
 
 // Small helper to detect client
 const isClient = typeof window !== 'undefined';
