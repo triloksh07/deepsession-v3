@@ -8,6 +8,12 @@ const withPWA = pwa({
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
+  swcMinify: true,
+  compiler: {
+    removeConsole: {
+      exclude: ["error"], // keep console.error in production
+    },
+  },
   images: {
     remotePatterns: [
       {
@@ -24,7 +30,13 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-  allowedDevOrigins: ['local-origin.dev', '*.local-origin.dev', "10.214.175.151", "192.168.0.105"],
+  allowedDevOrigins: [
+    'local-origin.dev',
+    '*.local-origin.dev',
+    "10.214.175.151",
+    "192.168.0.105",
+    "192.168.0.108"
+  ],
 
   // REMOVED: generateCSP() and the 'Content-Security-Policy' header
   // (These are now handled by middleware.ts)
