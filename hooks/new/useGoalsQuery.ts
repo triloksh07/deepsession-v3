@@ -5,24 +5,28 @@ import {
   collection,
   query,
   where,
-  getDocs,
+  getDocsFromCache,
   orderBy,
   onSnapshot,
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { Goal } from '@/types';
+import { devLog } from "@/lib/utils/logger"
+
+// Helper to compare objects deeply
+const isDataIdentical = (a: any[], b: any[]) => JSON.stringify(a) === JSON.stringify(b);
 
 // ---------------------------
 // Fetch function (1-time call)
 // ---------------------------
 export const fetchGoals = async (userId: string): Promise<Goal[]> => {
-  console.log('useGoalsQuery: Attempting to fetch for userId:', userId);
   if (!userId) {
-    console.error('useGoalsQuery: Aborted, no userId provided.');
+    devLog.error('useGoalsQuery: Aborted, no userId provided.');
     return [];
   }
 
   try {
+    devLog.info('useGoalsQuery: Attempting to fetch for userId:', userId);
     const goalsRef = collection(db, 'goals');
     const q = query(
       goalsRef,
@@ -30,15 +34,16 @@ export const fetchGoals = async (userId: string): Promise<Goal[]> => {
       orderBy('createdAt', 'desc')
     );
 
-    const querySnapshot = await getDocs(q);
+    // ✅ KEY FIX 1: Read from Cache First (Instant)
+    const querySnapshot = await getDocsFromCache(q);
 
-    let fromCacheCount = 0;
-    let fromServerCount = 0;
+    // let fromCacheCount = 0;
+    // let fromServerCount = 0;
 
-    querySnapshot.docs.forEach((doc) => {
-      if (doc.metadata.fromCache) fromCacheCount++;
-      else fromServerCount++;
-    });
+    // querySnapshot.docs.forEach((doc) => {
+    //   if (doc.metadata.fromCache) fromCacheCount++;
+    //   else fromServerCount++;
+    // });
 
     const data = querySnapshot.docs.map(
       (doc) =>
@@ -48,17 +53,17 @@ export const fetchGoals = async (userId: string): Promise<Goal[]> => {
       } as Goal)
     );
 
-    console.log(
-      'useGoalsQuery: Successfully fetched',
-      data.length,
-      'goals.',
-      { fromCacheCount, fromServerCount }
-    );
+    // console.log(
+    //   'useGoalsQuery: Successfully fetched',
+    //   data.length,
+    //   'goals.',
+    //   { fromCacheCount, fromServerCount }
+    // );
 
     return data;
   } catch (error) {
-    console.error('useGoalsQuery: Error *inside* fetchGoals:', error);
-    throw error;
+    console.warn('Goals cache fetch failed, waiting for snapshot');
+    return [];
   }
 };
 
@@ -67,6 +72,7 @@ export const fetchGoals = async (userId: string): Promise<Goal[]> => {
 // ---------------------------
 export const useGoalsQuery = (userId: string | undefined, enabled: boolean) => {
   const qc = useQueryClient();
+  const queryKey = ['goals', userId];
 
   useEffect(() => {
     if (!userId || !enabled) return;
@@ -80,8 +86,9 @@ export const useGoalsQuery = (userId: string | undefined, enabled: boolean) => {
 
     const unsubscribe = onSnapshot(
       q,
+      { includeMetadataChanges: true },
       (snapshot) => {
-        const goals = snapshot.docs.map(
+        const newGoals = snapshot.docs.map(
           (doc) =>
           ({
             ...doc.data(),
@@ -89,10 +96,17 @@ export const useGoalsQuery = (userId: string | undefined, enabled: boolean) => {
           } as Goal)
         );
 
-        qc.setQueryData<Goal[]>(['goals', userId], goals);
+        // ✅ KEY FIX 2: Deep compare to stop flash
+        const currentGoals = qc.getQueryData<Goal[]>(queryKey);
+
+        if (!currentGoals || !isDataIdentical(currentGoals, newGoals)) {
+          qc.setQueryData<Goal[]>(queryKey, newGoals);
+        }
+
+        // qc.setQueryData<Goal[]>(['goals', userId], newGoals);
 
         console.log('useGoalsQuery: snapshot update', {
-          count: goals.length,
+          count: newGoals.length,
           fromCacheSnapshot: snapshot.metadata.fromCache,
         });
       },
@@ -105,17 +119,14 @@ export const useGoalsQuery = (userId: string | undefined, enabled: boolean) => {
   }, [userId, enabled, qc]);
 
   return useQuery({
-    queryKey: ['goals', userId],
+    queryKey: queryKey,
     queryFn: () => fetchGoals(userId!), // initial fetch only – snapshot keeps cache fresh afterwards
     enabled: !!userId && enabled,
-    staleTime: 1000 * 60 * 60, // 1 hour
-    gcTime: 1000 * 60 * 60 * 24, // 24 hours
+    staleTime: Infinity, // 1000 * 60 * 60, // 1 hour
+    gcTime: Infinity, // 1000 * 60 * 60 * 24, // 24 hours
     refetchOnMount: false,
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,
-    retry: 1,
-    networkMode: 'offlineFirst',
-    // 🔑 IMPORTANT: sirf data change pe re-render
     notifyOnChangeProps: ['data'],
   });
 };

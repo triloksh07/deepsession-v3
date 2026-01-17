@@ -1,11 +1,12 @@
 // hooks/useSessionsQuery.ts
 import { useQuery, useQueryClient, } from '@tanstack/react-query';
-import { collection, query, where, orderBy, getDocs, getDocsFromCache, onSnapshot, Timestamp } from 'firebase/firestore';
+import { collection, query, where, orderBy, getDocsFromCache, onSnapshot, Timestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { Session } from '@/types';
 import { useEffect } from 'react';
 import { logSessionsFetch } from '@/lib/logging';
 import type { QueryDocumentSnapshot } from 'firebase/firestore'
+import { devLog } from '@/lib/utils/logger';
 
 interface FirestoreSessionData {
     id: string;
@@ -20,49 +21,69 @@ interface FirestoreSessionData {
     created_at?: Timestamp | '';
 }
 
-// helper that converts Firestore doc data -> Session (UI) model
+// Helper: Normalize Timestamps to primitives to ensure JSON.stringify stability
+const normalizeDate = (date: any): number | null => {
+    if (!date) return null;
+    if (typeof date === 'number') return date; // Already a timestamp
+    if (typeof date === 'string') return new Date(date).getTime(); // ISO String
+    // if (date?.toMillis) return date.toMillis(); // Firestore Timestamp
+    if (date instanceof Date) return date.getTime(); // JS Date
+    return null;
+};
+
+// Helper to compare objects deeply
+const isDataIdentical = (a: any[], b: any[]) => JSON.stringify(a) === JSON.stringify(b);
+
+// Helper Firestore doc -> Session (UI) model
 const adaptDocToSession = (doc: any) => {
     const data = doc.data() as FirestoreSessionData;
     if (!data?.started_at || !data?.ended_at) return null;
-    const startTime = new Date(data.started_at).getTime();
-    const endTime = new Date(data.ended_at).getTime();
-    if (isNaN(startTime) || isNaN(endTime)) return null;
+
+    // const startTime = new Date(data.started_at).getTime();
+    // const endTime = new Date(data.ended_at).getTime();
+
+    // Normalize times to strictly numbers (Epoch MS)
+    const startTime = normalizeDate(data.started_at);
+    const endTime = normalizeDate(data.ended_at);
+
+    if (!startTime || !endTime) return null;
+    // if (isNaN(startTime) || isNaN(endTime)) return null;
+
     return {
         id: doc.id,
-        title: data.title,
+        title: data.title || '',
         type: data.session_type_id,
         notes: data.notes || '',
-        sessionTime: data.total_focus_ms,
-        breakTime: data.total_break_ms,
+        sessionTime: Number(data.total_focus_ms),
+        breakTime: Number(data.total_break_ms),
         startTime,
         endTime,
         date: new Date(startTime).toISOString().split('T')[0],
-        // fromCache: doc.metadata.fromCache,
-        // pending: doc.metadata.hasPendingWrites,
-        // Optional: Track pending state for UI indicators
-        // isPending: snapshot.metadata.hasPendingWrites 
+        // Note: We deliberately exclude metadata fields to ensure
+        // JSON.stringify works correctly for comparison.
     } as Session;
 };
 
-// ✅ CHANGED: This function now strictly reads from Local Cache 
-// to avoid overwriting pending writes.
-// The actual server data will arrive via the onSnapshot listener below.
+// Fetcher: Reads strictly from Local Cache first (Instant Resume)
 export const fetchSessions = async (userId: string): Promise<Session[]> => {
-    console.log('useSessionsQuery: Attempting to fetch from (onSnapshot):');
+
     if (!userId) return [];
 
     try {
+        devLog.info("useSessionsQuery: Attempting to fetch from (onSnapshot):");
+        devLog.debug({ query: "sessions", status: "pending" });
+
         const sessionsRef = collection(db, 'sessions');
         const q = query(sessionsRef, where('userId', '==', userId), orderBy('started_at', 'desc'));
-        const querySnapshot = await getDocsFromCache(q);
-        // querySnapshot.docs.forEach(doc => console.log('Session data fromCache:', doc.metadata?.fromCache));
 
-        let fromCacheCount = 0;
-        let fromServerCount = 0;
-        querySnapshot.docs.forEach((doc) => {
-            if (doc.metadata.fromCache) fromCacheCount++;
-            else fromServerCount++;
-        });
+        const querySnapshot = await getDocsFromCache(q);
+
+        // let fromCacheCount = 0;
+        // let fromServerCount = 0;
+        // querySnapshot.docs.forEach((doc) => {
+        //     if (doc.metadata.fromCache) fromCacheCount++;
+        //     else fromServerCount++;
+        // });
 
         const sessions: Session[] = querySnapshot.docs
             .map(adaptDocToSession)
@@ -73,18 +94,15 @@ export const fetchSessions = async (userId: string): Promise<Session[]> => {
             source: 'fetch',
             userId,
             count: sessions.length,
-            fromCacheCount,
-            fromServerCount,
+            fromCacheCount: sessions.length,
+            fromServerCount: 0,
         });
 
-        console.log('useSessionsQuery: Successfully fetched', sessions.length, 'sessions.');
+        devLog.info('useSessionsQuery: Successfully fetched', sessions.length, 'sessions.');
+
         return sessions;
     } catch (error) {
-        console.error('useSessionsQuery: Error inside fetchSessions:', error);
-        // throw error;
-        // ✅ FIX: Return empty array instead of throwing
-        // This allows React Query to show "success" state with 0 items
-        // while onSnapshot fetches the real data in the background.
+        console.warn('Cache fetch failed (likely empty), waiting for snapshot:', error);
         return [];
     }
 };
@@ -93,7 +111,7 @@ export const useSessionsQuery = (userId: string | undefined, enabled: boolean) =
     const qc = useQueryClient();
     const queryKey = ['sessions', userId];
 
-    // real-time listener
+    // Real-time listener for updates (Sync & Pending Writes)
     useEffect(() => {
         if (!userId || !enabled) return;
 
@@ -103,19 +121,35 @@ export const useSessionsQuery = (userId: string | undefined, enabled: boolean) =
         // This handles Initial Load + Offline Local + Online Sync
         const unsubscribe = onSnapshot(q, { includeMetadataChanges: true }, (snapshot) => {
             // snapshot will return cached results immediately when offline
-            const sessions = snapshot.docs.map(adaptDocToSession).filter(Boolean) as Session[];
+            const newSessions = snapshot.docs.map(adaptDocToSession).filter(Boolean) as Session[];
 
-            // This updates the UI with the "Merged View" (Server + Pending Local Writes)
-            qc.setQueryData(queryKey, sessions);
+            // ✅ OPTIMIZATION: Deep Compare to prevent re-renders on metadata changes
+            // When a write goes from 'pending' to 'synced', the data fields don't change.
+            // We shouldn't update the cache in that case.
+            const currentSessions = qc.getQueryData<Session[]>(queryKey);
 
-            // for debugging
-            logSessionsFetch({
-                source: 'snapshot',
-                userId,
-                count: sessions.length,
-                fromCacheSnapshot: snapshot.metadata.fromCache,
-            });
+            // ✅ Debug Log: Check if this logic is actually saving us
+            const isSame = isDataIdentical(currentSessions || [], newSessions);
 
+            // if (!currentSessions || !isDataIdentical(currentSessions, newSessions)) {
+            //     qc.setQueryData(queryKey, newSessions);
+
+            //     logSessionsFetch({
+            //         source: 'snapshot_update',
+            //         userId,
+            //         count: newSessions.length,
+            //         fromCacheSnapshot: snapshot.metadata.fromCache,
+            //     });
+            // }
+
+            if (!isSame) {
+                console.log(`[Snapshot Update] Data changed. (FromCache: ${snapshot.metadata.fromCache})`);
+                // Optional: Log strict diff if needed for debugging
+                console.log('Diff:', newSessions[0], currentSessions?.[0]); 
+                qc.setQueryData(queryKey, newSessions);
+            } else {
+                console.log('[Snapshot Update] Skipped re-render (Data identical)');
+            }
         }, (err) => {
             console.error('onSnapshot error for sessions:', err);
         });
@@ -125,23 +159,21 @@ export const useSessionsQuery = (userId: string | undefined, enabled: boolean) =
 
     return useQuery({
         queryKey: queryKey,
-        // Query Function: Only runs on initial mount.
-        // We use the "Cache Only" fetcher so we don't wipe pending data.
-        // queryFn: () => fetchSessions(userId!),
-
-        queryFn: () => {
-            return qc.getQueryData<Session[]>(queryKey) || [];
-        },
-
+        queryFn: () => fetchSessions(userId!),
         enabled: !!userId && enabled,
+
+        // Cache Settings for Offline-First
         staleTime: Infinity, // 1000 * 60 * 60, // 1 hour
         gcTime: Infinity, // 1000 * 60 * 60 * 48, // 24 hours
+
+        // Critical: Prevent network fetches from interfering with onSnapshot
         refetchOnMount: false,
         refetchOnWindowFocus: false,
         refetchOnReconnect: false, // Critical: Don't refetch on network restore
-        retry: 1,
-        networkMode: 'offlineFirst',
-        // 🔑 IMPORTANT: sirf data change pe re-render
-        // notifyOnChangeProps: ['data'],
+        // retry: 1,
+
+        // networkMode: 'offlineFirst',
+        // Only re-render if the actual data array changes
+        notifyOnChangeProps: ['data'],
     });
 };

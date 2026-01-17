@@ -1,6 +1,6 @@
 // lib/logging.ts
 export function logSessionsFetch(opts: {
-  source: 'fetch' | 'snapshot';
+  source: 'fetch' | 'snapshot' | 'snapshot_update';
   userId: string;
   count: number;
   fromCacheCount?: number;

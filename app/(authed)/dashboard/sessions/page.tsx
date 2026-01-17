@@ -60,7 +60,7 @@ const SessionsContent = memo(
       onEdit: (s: Session) => void;
       onRequestDelete: (s: Session) => void;
     }) {
-    const { sessions: sessionList } = useDashboard();
+    const { sessions: sessionList, isLoading } = useDashboard();
     const sessions = useMemo(() => {
       return sessionList ?? [];
     }, [sessionList]);
@@ -120,6 +120,16 @@ const SessionsContent = memo(
     const formatDateTime = (timestamp: number) => {
       return new Date(timestamp).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
     };
+
+
+    // ✅ SMART LOADING STATE:
+    // Only show Skeleton if we are loading AND we have 0 sessions.
+    // If we have cached sessions (stale), show them immediately (isLoading is true, but sessions.length > 0).
+    const shouldShowSkeleton = isLoading && (!sessions || sessions.length === 0);
+
+    if (shouldShowSkeleton) {
+      return <SessionsListSkeleton />;
+    }
 
     if (!sessions || sessions.length === 0) {
       return (
@@ -279,9 +289,10 @@ export default function SessionLog() {
         </CardContent>
       </Card>
 
-      <Suspense fallback={<SessionsListSkeleton />}>
-        <SessionsContent onEdit={handleEditClick} onRequestDelete={handleRequestDelete} />
-      </Suspense>
+      {/* <Suspense fallback={<SessionsListSkeleton />}> */}
+      {/* Suspense is great, but our manual check above covers the 'cache miss' scenario better for this specific case */}
+      <SessionsContent onEdit={handleEditClick} onRequestDelete={handleRequestDelete} />
+      {/* </Suspense> */}
 
       <Dialog open={!!editingSession} onOpenChange={(isOpen) => !isOpen && setEditingSession(null)}>
         <DialogContent className="sm:max-w-[500px]">
