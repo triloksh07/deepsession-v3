@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Clock, Calendar, FileText, Edit, Trash2 } from 'lucide-react';
 import type { Session } from '@/types';
 import { DEFAULT_SESSION_TYPES } from '@/config/sessionTypes.config';
-import { useUpdateSession, useDeleteSession } from '@/hooks/new/useSessionMutations';
+import { useUpdateSession, useDeleteSession } from '@/hooks/CRUD/useSessionMutations';
 import {
   AlertDialog,
   AlertDialogAction,

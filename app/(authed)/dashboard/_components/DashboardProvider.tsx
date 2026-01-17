@@ -3,12 +3,12 @@
 import React, { createContext, useContext } from "react";
 
 // import { useSessionsQuery } from "@/hooks/new/SessionQuery";
-import { useSessionsQuery } from "@/hooks/new/useSessionsQuery";
+import { useSessionsQuery } from "@/hooks/CRUD/useSessionsQuery";
 // import { useSessionsQuery } from "@/hooks/useSessionsQuery";
-import type { UpdateSessionInput } from "@/hooks/new/useSessionMutations";
-import { useUpdateSession, useDeleteSession } from "@/hooks/new/useSessionMutations";
-import { useGoalsQuery } from "@/hooks/new/useGoalsQuery";
-import { useCreateGoal, useUpdateGoal, useDeleteGoal } from "@/hooks/new/useGoalMutations";
+import type { UpdateSessionInput } from "@/hooks/CRUD/useSessionMutations";
+import { useUpdateSession, useDeleteSession } from "@/hooks/CRUD/useSessionMutations";
+import { useGoalsQuery } from "@/hooks/CRUD/useGoalsQuery";
+import { useCreateGoal, useUpdateGoal, useDeleteGoal } from "@/hooks/CRUD/useGoalMutations";
 import type { Session, Goal, } from "@/types";
 import { Skeleton as SkeletonBlock } from '@/components/ui/skeleton'
 
@@ -83,8 +83,8 @@ export default function DashboardProvider({
     // updateSession: (input) => updateSessionMutation.mutate(input),
     // deleteSession: (id) => deleteSessionMutation.mutate(id),
   }), [
-    userId, sessionsData, goalsData, loadingSessions, loadingGoals,
-    sessionsError, goalsError, errSessions, errGoals
+    userId, sessionsData, goalsData, createGoalMutation,
+    deleteGoalMutation, error, isError, isLoading, updateGoalMutation
   ]);
 
   // ✅ OPTIMIZED CHECK:

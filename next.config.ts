@@ -8,7 +8,6 @@ const withPWA = pwa({
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
-  swcMinify: true,
   compiler: {
     removeConsole: {
       exclude: ["error"], // keep console.error in production
