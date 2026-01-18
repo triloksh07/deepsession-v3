@@ -12,10 +12,10 @@ import DashboardClientLayout from './dashboard/layout' // <- client layout (alre
 import Navbar from './dashboard/_components/Navbar';
 
 export const metadata: Metadata = {
-  title: 'DeepSession v3 — Dashboard',
+  title: 'DeepSession',
   description: 'Your personal productivity dashboard. Track sessions, goals and analytics.',
   openGraph: {
-    title: 'DeepSession — Dashboard',
+    title: 'DeepSession',
     description: 'Your personal productivity dashboard. Track sessions, goals and analytics.',
     type: 'website',
   },

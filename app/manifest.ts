@@ -1,25 +1,27 @@
 import type { MetadataRoute } from 'next'
- 
+
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: 'DeepSession-v3',
-    short_name: 'DeepSession',
-    description: 'AI powered focus coach',
+    name: 'DeepSession',
+    short_name: 'DS',
+    description: 'Flow State Companion',
     start_url: '/dashboard',
     display: 'standalone',
-    background_color: '#121212',
-    theme_color: '#0f172a',
+    background_color: '#ffffff',
+    theme_color: '#2c81fb',
     icons: [
-        {
-            "src": "/icon-192x192.png",
-            "sizes": "192x192",
-            "type": "image/png"
-          },
-          {
-            "src": "/icon-512x512.png",
-            "sizes": "512x512",
-            "type": "image/png"
-          }
+      {
+        "src": "/web-app-manifest-192x192.png",
+        "sizes": "192x192",
+        "type": "image/png",
+        // "purpose": "maskable"
+      },
+      {
+        "src": "/web-app-manifest-512x512.png",
+        "sizes": "512x512",
+        "type": "image/png",
+        // "purpose": "maskable"
+      }
     ],
   }
 }
