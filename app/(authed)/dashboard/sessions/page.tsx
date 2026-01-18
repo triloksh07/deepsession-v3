@@ -182,7 +182,7 @@ const SessionsContent = memo(
                     <div className="col-span-2 flex items-start justify-between mb-3">
                       <div className="flex justify-center items-center space-x-3">
                         <div className="flex-1">
-                          <h3 className="font-medium mb-1 truncate">{session.title}</h3>
+                          <h3 className="font-medium mb-1">{session.title}</h3>
                           <div className="flex items-center space-x-2 text-muted-foreground">
                             <span>{formatDateTime(session.startTime)} - {formatDateTime(session.endTime)}</span>
                           </div>
