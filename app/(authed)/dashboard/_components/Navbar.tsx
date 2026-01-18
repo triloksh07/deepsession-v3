@@ -21,6 +21,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import { ModeToggle } from '@/components/toggle-theme';
 import { onAuthStateChanged, signOut, User as FirebaseUser } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
+import { Logo } from "@/components/Logo";
 
 export default function Navbar() {
   const [user, setUser] = useState<FirebaseUser | null>(null);
@@ -67,19 +68,11 @@ export default function Navbar() {
         <div className="flex items-center justify-between h-16">
           {/* Left: logo */}
           <div className="flex items-center gap-3">
-            {/* <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-linear-to-br from-purple-600 to-purple-700 rounded-xl flex items-center justify-center">
-                <Timer className="w-6 h-6 text-white" />
-              </div>
-              <div className="hidden sm:block">
-                <h1 className="text-lg font-semibold">DeepSession</h1>
-                <p className="text-xs text-muted-foreground">Smart Session Tracking</p>
-              </div>
-            </div> */}
             {/* Logo */}
             <Link href="/dashboard/overview" className="flex items-center gap-2 group">
               <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-primary text-primary-foreground transition-transform group-hover:scale-105">
-                <BrainCircuit size={18} />
+                <Logo className="text-primary" />
+
               </div>
               <span className="text-foreground font-bold text-lg tracking-tight">DeepSession</span>
             </Link>
