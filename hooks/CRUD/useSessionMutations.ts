@@ -4,6 +4,7 @@ import { updateDoc, deleteDoc, doc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import type { Session } from "@/types";
 import { toast } from "sonner";
+import logger from "@/lib/utils/logger";
 
 // Data needed to update a session
 export type UpdateSessionInput = {
@@ -69,7 +70,7 @@ export const useUpdateSession = (userId: string) => {
       if (ctx?.key && ctx.previous) {
         qc.setQueryData<Session[]>(ctx.key, ctx.previous);
       }
-      console.error("Failed to update session:", error);
+      logger.error("Failed to update session:", error);
       toast.error("Failed to update session", {
         description: error.message,
       });
@@ -112,7 +113,7 @@ export const useDeleteSession = (userId: string) => {
       if (ctx?.key && ctx.previous) {
         qc.setQueryData<Session[]>(ctx.key, ctx.previous);
       }
-      console.error("Failed to delete session:", error);
+      logger.error("Failed to delete session:", error);
       toast.error("Failed to delete session", {
         description: error.message,
       });

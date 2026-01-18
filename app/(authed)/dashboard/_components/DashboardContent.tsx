@@ -9,12 +9,13 @@ import { Play, Clock, Target, TrendingUp } from 'lucide-react';
 import { Session } from '@/types'; // <-- 1. IMPORT THE TYPE
 import { calculateDuration } from '@/lib/timeUtils';
 import { useSessionStore } from '@/store/sessionStore';
-import { useDashboard } from '../_components/DashboardProvider'
+import { useDashboard } from '../_components/DashboardProvider';
+import logger from "@/lib/utils/logger";
 
 export default function DashboardContent() {
   const { sessions: SessionsData } = useDashboard();
   const sessions = SessionsData ?? [];
-  console.log("session data from useDashboard in overview: ", sessions)
+  logger.debug("session data from useDashboard in overview: ", sessions)
   const today = new Date().toISOString().split('T')[0];
   const todaySessions = sessions.filter(session => session.date === today);
 
@@ -73,12 +74,6 @@ export default function DashboardContent() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      {/* <div className="text-center space-y-4">
-        <h1 className="text-3xl font-medium">FocusFlow</h1>
-        <p className="text-muted-foreground">Track your productivity and build better work habits</p>
-        <SessionTracker />
-      </div> */}
 
       {/* Today's Stats */}
       <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
@@ -124,7 +119,7 @@ export default function DashboardContent() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Today's Activity Breakdown */}
-        {Object.keys(typeBreakdown).length == 0 &&
+        {sessions.length > 0 && Object.keys(typeBreakdown).length == 0 &&
           <Card>
             <CardHeader>
               <CardTitle>Today&apos;s Activity</CardTitle>

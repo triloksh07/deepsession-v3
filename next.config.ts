@@ -8,11 +8,6 @@ const withPWA = pwa({
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
-  compiler: {
-    removeConsole: {
-      exclude: ["error"], // keep console.error in production
-    },
-  },
   images: {
     remotePatterns: [
       {

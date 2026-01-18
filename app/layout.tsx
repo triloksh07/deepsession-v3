@@ -15,6 +15,8 @@ import { SpeedInsights } from '@vercel/speed-insights/next';
 import ServiceWorkerRegister from '@/components/serviceWorker'
 // import { SkeletonProvider } from "react-skeletonify";
 
+console.log("Current NODE_ENV:", process.env.NODE_ENV);
+
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],

@@ -1,28 +1,38 @@
-// logger.ts
-type LogLevel = "info" | "warn" | "error" | "debug";
+// lib/logger.ts
+const isProduction = process.env.NODE_ENV === "production";
 
-interface Logger {
-  info: (...args: unknown[]) => void;
-  warn: (...args: unknown[]) => void;
-  error: (...args: unknown[]) => void;
-  debug: (...args: unknown[]) => void;
-}
-
-function isDevEnv(): boolean {
-  return process.env.NODE_ENV === "development";
-}
-
-export const devLog: Logger = {
+export const logger = {
   info: (...args: unknown[]) => {
-    if (isDevEnv()) console.info(...args);
+    if (!isProduction) {
+      console.log(...args);
+    }
   },
   warn: (...args: unknown[]) => {
-    if (isDevEnv()) console.warn(...args);
+    if (!isProduction) {
+      console.warn(...args);
+    }
   },
   error: (...args: unknown[]) => {
-    if (isDevEnv()) console.error(...args);
+    if (!isProduction) {
+      console.error(...args);
+    } else {
+      // TODO: Add external error monitoring here (e.g., Sentry.captureException)
+      // Sentry.captureException(args[0]);
+    }
   },
   debug: (...args: unknown[]) => {
-    if (isDevEnv()) console.debug(...args);
+    if (!isProduction) {
+      // specific 'debug' level often hidden by default in browser console
+      console.debug(...args);
+    }
   },
+  // Optional: Keep group support for Dev DX, but disable in Prod
+  groupCollapsed: (label: string) => {
+    if (!isProduction) console.groupCollapsed(label);
+  },
+  groupEnd: () => {
+    if (!isProduction) console.groupEnd();
+  }
 };
+
+export default logger;

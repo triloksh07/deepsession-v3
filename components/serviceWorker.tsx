@@ -1,5 +1,7 @@
 "use client";
 import { useEffect } from "react";
+import logger from "@/lib/utils/logger";
+
 
 export default function ServiceWorkerRegister() {
   useEffect(() => {
@@ -8,19 +10,19 @@ export default function ServiceWorkerRegister() {
         window.addEventListener('load', () => {
           navigator.serviceWorker.register('/sw.js', { scope: '/' })
             .then(reg => {
-              console.log('SW registered:', reg);
+              logger.debug('SW registered:', reg);
               if (!navigator.serviceWorker.controller) {
-                console.log('No active controller yet — waiting for activation');
+                logger.debug('No active controller yet — waiting for activation');
               }
               // listen for lifecycle changes
               reg.addEventListener('updatefound', () => {
-                console.log('updatefound', reg.installing);
+                logger.debug('updatefound', reg.installing);
                 reg.installing?.addEventListener('statechange', (state) => {
-                  console.log('SW state:', reg.installing, state);
+                  logger.debug('SW state:', reg.installing, state);
                 });
               });
             })
-            .catch(err => console.error('SW registration failed:', err));
+            .catch(err => logger.error('SW registration failed:', err));
         });
       }
     }

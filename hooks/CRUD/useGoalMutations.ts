@@ -9,6 +9,7 @@ import {
 import { db, auth } from '@/lib/firebase';
 import { Goal } from '@/types';
 import { toast } from 'sonner';
+import logger from "@/lib/utils/logger";
 
 // --- Types ---
 
@@ -74,9 +75,9 @@ export const useCreateGoal = () => {
 
       qc.setQueryData<Goal[]>(key, (old = []) => [optimisticGoal, ...old]);
 
-      if (process.env.NODE_ENV === 'development') {
-        console.log('[useCreateGoal] optimistic goal added:', optimisticGoal);
-      }
+      // if (process.env.NODE_ENV === 'development') {
+        logger.info('[useCreateGoal] optimistic goal added:', optimisticGoal);
+      // }
 
       return { key, previous };
     },
@@ -90,7 +91,7 @@ export const useCreateGoal = () => {
       toast.error('Failed to create goal', {
         description: error.message || 'Please try again.',
       });
-      console.error('Failed to create goal:', error);
+      logger.error('Failed to create goal:', error);
     },
   });
 };
@@ -131,7 +132,7 @@ export const useUpdateGoal = (userId: string) => {
         qc.setQueryData<Goal[]>(ctx.key, ctx.previous);
       }
       toast.error('Failed to update goal', { description: error.message });
-      console.error('Failed to update goal:', error);
+      logger.error('Failed to update goal:', error);
     },
   });
 };
@@ -171,7 +172,7 @@ export const useDeleteGoal = (userId: string) => {
         qc.setQueryData<Goal[]>(ctx.key, ctx.previous);
       }
       toast.error('Failed to delete goal', { description: error.message });
-      console.error('Failed to delete goal:', error);
+      logger.error('Failed to delete goal:', error);
     },
   });
 };

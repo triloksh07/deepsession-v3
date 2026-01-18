@@ -11,7 +11,8 @@ import {
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { Goal } from '@/types';
-import { devLog } from "@/lib/utils/logger"
+import logger from "@/lib/utils/logger"
+import { logSessionsFetch } from '@/lib/logging';
 
 // Helper to compare objects deeply
 const isDataIdentical = (a: any[], b: any[]) => JSON.stringify(a) === JSON.stringify(b);
@@ -21,12 +22,12 @@ const isDataIdentical = (a: any[], b: any[]) => JSON.stringify(a) === JSON.strin
 // ---------------------------
 export const fetchGoals = async (userId: string): Promise<Goal[]> => {
   if (!userId) {
-    devLog.error('useGoalsQuery: Aborted, no userId provided.');
+    logger.error('useGoalsQuery: Aborted, no userId provided.');
     return [];
   }
 
   try {
-    devLog.info('useGoalsQuery: Attempting to fetch for userId:', userId);
+    logger.info('useGoalsQuery: Attempting to fetch for userId:', userId);
     const goalsRef = collection(db, 'goals');
     const q = query(
       goalsRef,
@@ -37,13 +38,9 @@ export const fetchGoals = async (userId: string): Promise<Goal[]> => {
     // ✅ KEY FIX 1: Read from Cache First (Instant)
     const querySnapshot = await getDocsFromCache(q);
 
-    // let fromCacheCount = 0;
-    // let fromServerCount = 0;
-
-    // querySnapshot.docs.forEach((doc) => {
-    //   if (doc.metadata.fromCache) fromCacheCount++;
-    //   else fromServerCount++;
-    // });
+    // 1. Calculate counts dynamically
+    const fromCacheCount = querySnapshot.docs.filter(doc => doc.metadata.fromCache).length;
+    const fromServerCount = querySnapshot.docs.length - fromCacheCount;
 
     const data = querySnapshot.docs.map(
       (doc) =>
@@ -53,16 +50,21 @@ export const fetchGoals = async (userId: string): Promise<Goal[]> => {
       } as Goal)
     );
 
-    // console.log(
-    //   'useGoalsQuery: Successfully fetched',
-    //   data.length,
-    //   'goals.',
-    //   { fromCacheCount, fromServerCount }
-    // );
+    // 2. Log with accurate metrics
+    // Note: Changed source to 'fetch' (since this is the explicit fetcher, not the listener)
+    logSessionsFetch({
+      source: 'fetch',
+      userId,
+      count: data.length,
+      fromCacheCount,   // Will be equal to total count when using getDocsFromCache
+      fromServerCount,  // Will be 0 when using getDocsFromCache
+    });
+
+    logger.info('useSessionsQuery: Successfully fetched', data.length, 'Goals.');
 
     return data;
   } catch (error) {
-    console.warn('Goals cache fetch failed, waiting for snapshot');
+    logger.warn('Goals cache fetch failed, waiting for snapshot');
     return [];
   }
 };
@@ -105,13 +107,13 @@ export const useGoalsQuery = (userId: string | undefined, enabled: boolean) => {
 
         // qc.setQueryData<Goal[]>(['goals', userId], newGoals);
 
-        console.log('useGoalsQuery: snapshot update', {
+        logger.info('useGoalsQuery: snapshot update', {
           count: newGoals.length,
           fromCacheSnapshot: snapshot.metadata.fromCache,
         });
       },
       (err) => {
-        console.error('onSnapshot error for goals:', err);
+        logger.error('onSnapshot error for goals:', err);
       }
     );
 

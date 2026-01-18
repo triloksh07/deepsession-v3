@@ -1,12 +1,12 @@
 // ----------------- 2. PersistentTimer.tsx (The Engine) -----------------
-// This component is "headless"—it has no UI. Its only job is to keep time.
+// This component is "headless" — it has no UI. Its only job is to keep time.
 
 'use client';
 
-import { forwardRef, useImperativeHandle, useRef, useEffect } from 'react';
-// import { useSessionStore } from '@/store/oldMainSessionStore';
+import { forwardRef, useImperativeHandle, useRef, useEffect } from 'react'
 import { useSessionStore } from '@/store/sessionStore';
 import { useShallow } from 'zustand/react/shallow';
+import logger from "@/lib/utils/logger";
 
 export interface TimerHandle {
   start: () => void;
@@ -39,13 +39,13 @@ const PersistentTimer = forwardRef<TimerHandle, PersistentTimerProps>(
     useEffect(() => {
       // if (!isActive || !sessionStartTime) return;
       if (isActive && sessionStartTime) {
-        console.log("Rehydrating timer state...");
-        console.log(`Session Start Time: ${sessionStartTime}`);
+        logger.debug("Rehydrating timer state...");
+        logger.debug(`Session Start Time: ${sessionStartTime}`);
 
         // 1. Ensure startTime is a valid number (milliseconds)
         const startTimeMs = new Date(sessionStartTime).getTime();
         if (isNaN(startTimeMs)) {
-          console.error("Rehydration failed: Invalid start time from store.");
+          logger.error("Rehydration failed: Invalid start time from store.");
           return;
         }
 
@@ -74,7 +74,7 @@ const PersistentTimer = forwardRef<TimerHandle, PersistentTimerProps>(
         const totalElapsedSinceStart = Date.now() - startTimeMs;
         sessionElapsed.current = totalElapsedSinceStart - breakElapsed.current;
 
-        console.log(`Rehydrated with Session: ${sessionElapsed.current}ms, Break: ${breakElapsed.current}ms`);
+        logger.debug(`Rehydrated with Session: ${sessionElapsed.current}ms, Break: ${breakElapsed.current}ms`);
         // Synchronously push the rehydrated time to the parent
         // This happens *before* the first paint.
         onTick(sessionElapsed.current, breakElapsed.current);
@@ -85,8 +85,7 @@ const PersistentTimer = forwardRef<TimerHandle, PersistentTimerProps>(
       breaks,
       isRehydratedOnBreak,
       onTick
-    ]); // Runs only on Mount
-    // isActive, isOnBreak, sessionStartTime, breaks, isRehydratedOnBreak
+    ]); 
 
     // New Core Timing Loop with requestAnimationFrame
     useEffect(() => {
@@ -136,7 +135,7 @@ const PersistentTimer = forwardRef<TimerHandle, PersistentTimerProps>(
     useImperativeHandle(ref, () => ({
       // 👇 2. Implement the `start` method
       start() {
-        console.log("Timer engine counters reset.");
+        logger.debug("Timer engine counters reset.");
         sessionElapsed.current = 0;
         breakElapsed.current = 0;
         // Set the timestamp to start counting immediately without a delay

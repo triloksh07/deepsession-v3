@@ -8,7 +8,7 @@ import type { User as FirebaseUser } from "firebase/auth";
 import { setPersistence, browserLocalPersistence } from 'firebase/auth'
 import { useSyncActiveSession } from "@/hooks/useSyncActiveSession";
 import { useQueryClient } from '@tanstack/react-query';
-
+import logger from "@/lib/utils/logger";
 import { fetchSessions } from '@/hooks/CRUD/useSessionsQuery';
 // import { useSessionsQuery } from '@/hooks/new/SessionQuery';
 
@@ -41,8 +41,8 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
         if (!isClient) return;
         // call once, non-blocking
         setPersistence(auth, browserLocalPersistence)
-            .then(() => console.log('Auth persistence set: browserLocalPersistence'))
-            .catch((err) => console.error('Failed to set auth persistence', err));
+            .then(() => logger.info('Auth persistence set: browserLocalPersistence'))
+            .catch((err) => logger.error('Failed to set auth persistence', err));
     }, []);
 
     useEffect(() => {

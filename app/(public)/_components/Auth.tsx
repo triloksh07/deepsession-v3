@@ -33,6 +33,7 @@ import {
 import { doc, setDoc } from 'firebase/firestore';
 import { db, auth } from '@/lib/firebase';
 import { toast } from "sonner";
+import logger from "@/lib/utils/logger";
 
 interface AuthProps {
   defaultTab?: 'login' | 'signup';
@@ -69,7 +70,7 @@ export function Auth({
       return { success: true };
     } catch (error: unknown) {
       setIsLoading(false);
-      const message = error instanceof Error ? error.message : 'Unknown error';
+      const message = error instanceof Error ? error.message : 'An unexpected error occurred';
       return { success: false, error: message };
     }
   };
@@ -100,7 +101,7 @@ export function Auth({
       return { success: true };
     } catch (error: unknown) {
       setIsLoading(false);
-      const message = error instanceof Error ? error.message : 'Unknown error';
+      const message = error instanceof Error ? error.message : 'An unexpected error occurred';
       return { success: false, error: message };
     }
   };
@@ -138,7 +139,8 @@ export function Auth({
       // ... (error handling)
       setIsProviderLoading(false);
       toast.error('Sign in failed!');
-      const message = error instanceof Error ? error.message : 'Unknown error';
+      logger.error('Sign in popup failed: ', error)
+      const message = error instanceof Error ? error.message : 'An unexpected error occurred';
       return { success: false, error: message };
     }
   };
@@ -185,7 +187,7 @@ export function Auth({
         setError(result.error || 'An error occurred');
       }
     } catch (error: unknown) {
-      console.error('Auth error:', error);
+      logger.error('Auth error:', error);
       const message = error instanceof Error ? error.message : 'An unexpected error occurred';
       setError(message);
     }
