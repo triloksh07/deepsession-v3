@@ -1,4 +1,6 @@
 // lib/logging.ts
+import logger from '@/lib/utils/logger';
+
 export function logSessionsFetch(opts: {
   source: 'fetch' | 'snapshot' | 'snapshot_update';
   userId: string;
@@ -19,15 +21,17 @@ export function logSessionsFetch(opts: {
   const online = typeof navigator !== 'undefined' ? navigator.onLine : 'unknown';
   const ts = new Date().toISOString();
 
-  console.groupCollapsed(
+  // This entire block will now be stripped in Production
+  logger.groupCollapsed(
     `[sessions:${source}] user=${userId} count=${count} online=${online} @ ${ts}`
   );
+
   if (fromCacheCount != null || fromServerCount != null) {
-    console.log('docs from cache:', fromCacheCount);
-    console.log('docs from server:', fromServerCount);
+    logger.debug('docs from cache:', fromCacheCount);
+    logger.debug('docs from server:', fromServerCount);
   }
   if (fromCacheSnapshot != null) {
-    console.log('snapshot.metadata.fromCache:', fromCacheSnapshot);
+    logger.debug('snapshot.metadata.fromCache:', fromCacheSnapshot);
   }
-  console.groupEnd();
+  logger.groupEnd();
 }

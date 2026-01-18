@@ -2,14 +2,17 @@
 
 import { useEffect } from 'react';
 import { useSessionStore } from '@/store/sessionStore';
+import logger from "@/lib/utils/logger";
 
-const STORAGE_KEY = 'deep-session-v0-timer-storage'; // Must match the name in your persist config
+const name = 'deep-session-v2-storage'
+// const name2 = 'deep-session-v0-timer-storage'
 
+const STORAGE_KEY = name; // Must match the name in your persist config
 export function useTabSync() {
   useEffect(() => {
     const handleStorageChange = (event: StorageEvent) => {
       if (event.key === STORAGE_KEY) {
-        console.log('Storage changed in another tab. Syncing state...');
+        logger.info('Storage changed in another tab. Syncing state...');
         // This tells Zustand to re-read its state from the updated localStorage
         useSessionStore.persist.rehydrate();
       }

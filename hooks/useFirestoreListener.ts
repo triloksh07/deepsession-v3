@@ -2,6 +2,7 @@
 import { onSnapshot, collection, query, where, orderBy } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useEffect } from 'react';
+import logger from "@/lib/utils/logger";
 import { useQueryClient } from '@tanstack/react-query';
 
 export function useSessionsRealtime(userId: string | undefined) {
@@ -18,11 +19,9 @@ export function useSessionsRealtime(userId: string | undefined) {
       // Update react-query cache (no refetch needed)
       qc.setQueryData(['sessions', userId], sessions);
     }, (err) => {
-      console.error('onSnapshot error', err);
+      logger.error('onSnapshot error', err);
     });
 
     return () => unsubscribe();
   }, [userId, qc]);
 }
-
-// useSessionsRealtime(user.uid)

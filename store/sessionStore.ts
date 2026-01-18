@@ -3,6 +3,7 @@ import { db, auth } from '@/lib/firebase';
 import { doc, setDoc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { persist } from 'zustand/middleware';
 import { Session } from '@/types'
+import logger from "@/lib/utils/logger";
 import { toast } from "sonner";
 
 export interface Break { start: string; end?: string; }
@@ -58,7 +59,7 @@ export const useSessionStore = create<TimerState>()(
         // toast.success("Session started.");
         // Our `useSyncActiveSession` hook will hear this and update the store
       } catch (error) {
-        console.error("Error starting session:", error);
+        logger.error("Error starting session:", error);
         toast.error("Failed to start session.");
         // Add a toast notification here
       }
@@ -86,7 +87,7 @@ export const useSessionStore = create<TimerState>()(
         }
         // The listener will update the store
       } catch (error) {
-        console.error("Error toggling break:", error);
+        logger.error("Error toggling break:", error);
       }
     },
 
@@ -105,7 +106,7 @@ export const useSessionStore = create<TimerState>()(
         await updateDoc(activeSessionRef, updates);
         toast.success("Session details updated.");
       } catch (error) {
-        console.error("Error updating session details:", error);
+        logger.error("Error updating session details:", error);
         toast.error("Failed to update session details.");
         // Add toast here
       }
@@ -121,7 +122,7 @@ export const useSessionStore = create<TimerState>()(
         await deleteDoc(activeSessionRef);
         // The listener will see this deletion and set isActive: false
       } catch (error) {
-        console.error("Error clearing active session:", error);
+        logger.error("Error clearing active session:", error);
       }
     },
 

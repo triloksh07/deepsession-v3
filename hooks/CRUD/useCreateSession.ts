@@ -5,6 +5,7 @@ import { db, auth } from '@/lib/firebase';
 import { toast } from 'sonner';
 import type { Session } from '@/types';
 import { SessionSchema } from '@/lib/schemas/sessionSchema';
+import logger from "@/lib/utils/logger";
 
 interface FinalV0DataInput {
   userId: string;
@@ -34,7 +35,7 @@ const createSessionOnFirebase = async (sessionData: CreateVarsWithId): Promise<C
   const user = auth.currentUser;
   if (!user) throw new Error('No authenticated user found');
 
-  const { id, ...rest} = sessionData; // Separate ID from data
+  const { id, ...rest } = sessionData; // Separate ID from data
 
   // SECURITY: Runtime Validation
   // This throws an error immediately if data format is invalid (e.g. negative numbers)
@@ -83,9 +84,7 @@ export const useCreateSession = () => {
 
       qc.setQueryData<Session[]>(key, (old = []) => [optimisticSession, ...old]);
 
-      if (process.env.NODE_ENV === 'development') {
-        console.log('[useCreateSession] optimistic session added:', optimisticSession);
-      }
+      logger.info('[useCreateSession] optimistic session added:', optimisticSession);
 
       return { key, previous };
     },
@@ -94,7 +93,7 @@ export const useCreateSession = () => {
       if (ctx?.key && ctx.previous) {
         qc.setQueryData(ctx.key, ctx.previous);
       }
-      console.error('Failed to save session:', error);
+      logger.error('Failed to save session:', error);
       toast.error('Failed to save session', { description: error.message });
     },
 

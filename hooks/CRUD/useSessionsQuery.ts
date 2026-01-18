@@ -6,7 +6,7 @@ import { Session } from '@/types';
 import { useEffect } from 'react';
 import { logSessionsFetch } from '@/lib/logging';
 import type { QueryDocumentSnapshot } from 'firebase/firestore'
-import { devLog } from '@/lib/utils/logger';
+import logger from '@/lib/utils/logger';
 
 interface FirestoreSessionData {
     id: string;
@@ -70,39 +70,36 @@ export const fetchSessions = async (userId: string): Promise<Session[]> => {
     if (!userId) return [];
 
     try {
-        devLog.info("useSessionsQuery: Attempting to fetch from (onSnapshot):");
-        devLog.debug({ query: "sessions", status: "pending" });
+        logger.info("useSessionsQuery: Attempting to fetch from cache...");
 
         const sessionsRef = collection(db, 'sessions');
         const q = query(sessionsRef, where('userId', '==', userId), orderBy('started_at', 'desc'));
 
         const querySnapshot = await getDocsFromCache(q);
 
-        // let fromCacheCount = 0;
-        // let fromServerCount = 0;
-        // querySnapshot.docs.forEach((doc) => {
-        //     if (doc.metadata.fromCache) fromCacheCount++;
-        //     else fromServerCount++;
-        // });
+        // 1. Calculate counts dynamically
+        const fromCacheCount = querySnapshot.docs.filter(doc => doc.metadata.fromCache).length;
+        const fromServerCount = querySnapshot.docs.length - fromCacheCount;
 
         const sessions: Session[] = querySnapshot.docs
             .map(adaptDocToSession)
             .filter(Boolean) as Session[];
 
-        // logging for debbuging
+        // 2. Log with accurate metrics
+        // Note: Changed source to 'fetch' (since this is the explicit fetcher, not the listener)
         logSessionsFetch({
             source: 'fetch',
             userId,
             count: sessions.length,
-            fromCacheCount: sessions.length,
-            fromServerCount: 0,
+            fromCacheCount,  // Will be equal to total count when using getDocsFromCache
+            fromServerCount, // Will be 0 when using getDocsFromCache
         });
 
-        devLog.info('useSessionsQuery: Successfully fetched', sessions.length, 'sessions.');
+        logger.info('useSessionsQuery: Successfully fetched', sessions.length, 'sessions.');
 
         return sessions;
     } catch (error) {
-        console.warn('Cache fetch failed (likely empty), waiting for snapshot:', error);
+        logger.warn('Cache fetch failed (likely empty), waiting for snapshot:', error);
         return [];
     }
 };
@@ -143,15 +140,15 @@ export const useSessionsQuery = (userId: string | undefined, enabled: boolean) =
             // }
 
             if (!isSame) {
-                console.log(`[Snapshot Update] Data changed. (FromCache: ${snapshot.metadata.fromCache})`);
+                logger.debug(`[Snapshot Update] Data changed. (FromCache: ${snapshot.metadata.fromCache})`);
                 // Optional: Log strict diff if needed for debugging
-                console.log('Diff:', newSessions[0], currentSessions?.[0]); 
+                logger.debug('Diff:', newSessions[0], currentSessions?.[0]);
                 qc.setQueryData(queryKey, newSessions);
             } else {
-                console.log('[Snapshot Update] Skipped re-render (Data identical)');
+                logger.debug('[Snapshot Update] Skipped re-render (Data identical)');
             }
         }, (err) => {
-            console.error('onSnapshot error for sessions:', err);
+            logger.error('onSnapshot error for sessions:', err);
         });
 
         return () => unsubscribe();
@@ -170,8 +167,6 @@ export const useSessionsQuery = (userId: string | undefined, enabled: boolean) =
         refetchOnMount: false,
         refetchOnWindowFocus: false,
         refetchOnReconnect: false, // Critical: Don't refetch on network restore
-        // retry: 1,
-
         // networkMode: 'offlineFirst',
         // Only re-render if the actual data array changes
         notifyOnChangeProps: ['data'],

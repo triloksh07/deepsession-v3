@@ -20,6 +20,7 @@ import { EditableProps } from '@/types/typeDeclaration';
 import { SafeMarkdown } from '@/components/SafeMarkdown';
 import { db } from '@/lib/firebase';
 import { doc, collection } from 'firebase/firestore';
+import logger from "@/lib/utils/logger";
 
 function EditableTitle({ value, onChange, disabled = false }: EditableProps) {
     const [isEditing, setIsEditing] = useState(false);
@@ -215,7 +216,7 @@ export default function SessionTracker() {
         try {
             await clearActiveSession();
         } catch (error) {
-            console.error("End session failed:", error);
+            logger.error("End session failed:", error);
         }
     };
 
