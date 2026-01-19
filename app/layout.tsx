@@ -13,6 +13,7 @@ import { NetworkStatusHandler } from '@/components/NetworkStatusHandler';
 import { Analytics } from '@vercel/analytics/next';
 import { SpeedInsights } from '@vercel/speed-insights/next';
 import ServiceWorkerRegister from '@/components/serviceWorker'
+import { GoogleTagManager } from '@next/third-parties/google'
 
 console.log("Current NODE_ENV:", process.env.NODE_ENV);
 
@@ -92,6 +93,14 @@ export default async function RootLayout({
 
   return (
     <html lang="en" suppressHydrationWarning>
+      <head>
+        {/* ⚡ PERFORMANCE: Preconnect to critical third-party origins */}
+        <link rel="preconnect" href="https://identitytoolkit.googleapis.com" />
+        <link rel="preconnect" href="https://firebase.googleapis.com" />
+        <link rel="preconnect" href="https://www.googletagmanager.com" />
+        {/* Optional: 1st Party Vercel Analytics */}
+        <link rel="preconnect" href="https://vitals.vercel-insights.com" />
+      </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
@@ -119,6 +128,8 @@ export default async function RootLayout({
           </Providers>
         </ ThemeProvider>
       </body>
+      {/* Load GTM after the page is interactive */}
+      <GoogleTagManager gtmId="G-BNSY4B3J3P" />
     </html>
   );
 }

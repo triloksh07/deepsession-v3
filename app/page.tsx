@@ -10,7 +10,7 @@ import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "DeepSession - Track | Analyse | Improve",
-  description: "Boost your productivity with AI-driven focus sessions and personalized insights",
+  description: "Track your deep work sessions and analyze your productivity patterns.",
 };
 
 function App() {
