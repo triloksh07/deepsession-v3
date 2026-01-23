@@ -129,6 +129,6 @@ export const useGoalsQuery = (userId: string | undefined, enabled: boolean) => {
     refetchOnMount: false,
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,
-    notifyOnChangeProps: ['data'],
+    // notifyOnChangeProps: ['data'],
   });
 };

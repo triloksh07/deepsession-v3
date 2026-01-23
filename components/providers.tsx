@@ -11,12 +11,12 @@ function makeQueryClient() {
     defaultOptions: {
       queries: {
         // We can set some sensible defaults here
-        staleTime: 1000 * 60 * 5, // 5 minutes
-        gcTime: 1000 * 60 * 60 * 24, // 24 hours (cached data)
+        staleTime: Infinity, // 1000 * 60 * 5, // 5 minutes
+        gcTime: Infinity, // 1000 * 60 * 60 * 24, // 24 hours (cached data)
         refetchOnMount: false,
         refetchOnReconnect: false,
         refetchOnWindowFocus: false, // turned off auto-refetch
-        retry: 1,
+        // retry: 1,
       },
       // mutations: {
       //   retry: 1,

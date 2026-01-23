@@ -2,7 +2,7 @@
 'use client';
 import React from 'react';
 import { Suspense } from 'react';
-import SessionTracker from '@/app/(authed)/dashboard/_components/sessionTracker';
+import SessionTracker from '@/app/(authed)/dashboard/_components/PipSessionTracker';
 import Loading from './loading';
 import DashboardContent from "../_components/DashboardContent"
 

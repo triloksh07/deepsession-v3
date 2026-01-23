@@ -169,6 +169,6 @@ export const useSessionsQuery = (userId: string | undefined, enabled: boolean) =
         refetchOnReconnect: false, // Critical: Don't refetch on network restore
         // networkMode: 'offlineFirst',
         // Only re-render if the actual data array changes
-        notifyOnChangeProps: ['data'],
+        // notifyOnChangeProps: ['data'],
     });
 };
