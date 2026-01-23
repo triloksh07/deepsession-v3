@@ -1,7 +1,26 @@
-<svg xmlns="http://www.w3.org/2000/svg" version="1.1" xmlns:xlink="http://www.w3.org/1999/xlink" width="1000" height="1000"><g clip-path="url(#SvgjsClipPath1424)"><rect width="1000" height="1000" fill="#1c8ec7"></rect><g transform="matrix(37.5,0,0,37.5,50,50)"><svg xmlns="http://www.w3.org/2000/svg" version="1.1" xmlns:xlink="http://www.w3.org/1999/xlink" width="24" height="24"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" style="color: #2c81fb;" class="lucide-logo">
-    <!-- 8A2BE2 -->
+<svg xmlns="http://www.w3.org/2000/svg" version="1.1" xmlns:xlink="http://www.w3.org/1999/xlink" width="1000" height="1000"><style>
+    #light-icon {
+      display: inline;
+    }
+    #dark-icon {
+      display: none;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      #light-icon {
+        display: none;
+      }
+      #dark-icon {
+        display: inline;
+      }
+    }
+  </style><g id="light-icon"><svg xmlns="http://www.w3.org/2000/svg" version="1.1" xmlns:xlink="http://www.w3.org/1999/xlink" width="1000" height="1000"><g clip-path="url(#SvgjsClipPath1164)"><rect width="1000" height="1000" fill="#ffffff"></rect><g transform="matrix(41.666666666666664,0,0,41.666666666666664,0,0)"><svg xmlns="http://www.w3.org/2000/svg" version="1.1" xmlns:xlink="http://www.w3.org/1999/xlink" width="24" height="24"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" style="color: #1447E6;" class="lucide-logo">
+     <!-- #297fff -->
+      <!-- 2981FF -->
+       <!-- #2c81fb -->
+        <!-- #1447E6 -->
     
-    <rect x="0" y="0" width="24" height="24" rx="" fill="currentColor"></rect>
+    <rect x="0" y="0" width="24" height="24" rx="6" fill="currentColor"></rect>
     
     <g transform="translate(2.4, 2.4) scale(0.8)">
         <path d="M12 5a3 3 0 1 0-5.997.125 4 4 0 0 0-2.526 5.77 4 4 0 0 0 .556 6.588A4 4 0 1 0 12 18Z" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"></path>
@@ -18,4 +37,27 @@
         <circle cx="20" cy="21" r=".5" fill="white"></circle>
         <circle cx="20" cy="8" r=".5" fill="white"></circle>
     </g>
-</svg></svg></g></g><defs><clipPath id="SvgjsClipPath1424"><rect width="1000" height="1000" x="0" y="0" rx="450" ry="450"></rect></clipPath></defs></svg>
+</svg></svg></g></g><defs><clipPath id="SvgjsClipPath1164"><rect width="1000" height="1000" x="0" y="0" rx="400" ry="400"></rect></clipPath></defs></svg></g><g id="dark-icon"><svg xmlns="http://www.w3.org/2000/svg" version="1.1" xmlns:xlink="http://www.w3.org/1999/xlink" width="1000" height="1000"><g clip-path="url(#SvgjsClipPath1165)"><rect width="1000" height="1000" fill="#ffffff"></rect><g transform="matrix(41.666666666666664,0,0,41.666666666666664,0,0)"><svg xmlns="http://www.w3.org/2000/svg" version="1.1" xmlns:xlink="http://www.w3.org/1999/xlink" width="24" height="24"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" style="color: #1447E6;" class="lucide-logo">
+     <!-- #297fff -->
+      <!-- 2981FF -->
+       <!-- #2c81fb -->
+        <!-- #1447E6 -->
+    
+    <rect x="0" y="0" width="24" height="24" rx="6" fill="currentColor"></rect>
+    
+    <g transform="translate(2.4, 2.4) scale(0.8)">
+        <path d="M12 5a3 3 0 1 0-5.997.125 4 4 0 0 0-2.526 5.77 4 4 0 0 0 .556 6.588A4 4 0 1 0 12 18Z" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"></path>
+        <path d="M9 13a4.5 4.5 0 0 0 3-4" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"></path>
+        <path d="M6.003 5.125A3 3 0 0 0 6.401 6.5" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"></path>
+        <path d="M3.477 10.896a4 4 0 0 1 .585-.396" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"></path>
+        <path d="M6 18a4 4 0 0 1-1.967-.516" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"></path>
+        <path d="M12 13h4" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"></path>
+        <path d="M12 18h6a2 2 0 0 1 2 2v1" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"></path>
+        <path d="M12 8h8" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"></path>
+        <path d="M16 8V5a2 2 0 0 1 2-2" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"></path>
+        <circle cx="16" cy="13" r=".5" fill="white"></circle>
+        <circle cx="18" cy="3" r=".5" fill="white"></circle>
+        <circle cx="20" cy="21" r=".5" fill="white"></circle>
+        <circle cx="20" cy="8" r=".5" fill="white"></circle>
+    </g>
+</svg></svg></g></g><defs><clipPath id="SvgjsClipPath1165"><rect width="1000" height="1000" x="0" y="0" rx="400" ry="400"></rect></clipPath></defs></svg></g></svg>
