@@ -10,6 +10,7 @@
 import type { Metadata } from 'next'
 import DashboardClientLayout from './dashboard/layout' // <- client layout (already created)
 import Navbar from './dashboard/_components/Navbar';
+import { PipProvider } from "@/context/PipProvider";
 
 export const metadata: Metadata = {
   title: 'DeepSession',
@@ -31,10 +32,12 @@ export default function AuthedServerLayout({ children }: { children: React.React
   // Render the client layout which will read client-side auth and render the app shell
   return (
     <>
-      <Navbar />
-      <DashboardClientLayout>
-        {children}
-      </DashboardClientLayout>
+      <PipProvider>
+        <Navbar />
+        <DashboardClientLayout>
+          {children}
+        </DashboardClientLayout>
+      </PipProvider>
     </>
   );
 }
