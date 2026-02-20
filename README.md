@@ -11,9 +11,9 @@ This project is the successor to `v0 & v2`, migrating from a simple MVP to a sca
 
   * **Offline-First:** Start, stop, and manage your timer with zero internet connection. All data syncs automatically when you're back online.
   * **Real-Time Cross-Device Sync:** Start a timer on your desktop and see it ticking live on your phone.
-  * **Robust Session Timer:** The timer survives browser reloads and tab closures, using `v0` timer engine (`PersistentTimer.ts`).
+  * **Robust Session Timer:** The timer survives browser reloads and tab closures.
   * **Secure Authentication:** Sign in with Email/Password, Google, or GitHub.
-  * **Session History & Data Adapter:** A detailed log of all past sessions. The app correctly adapts and displays data from your `v0` database.
+  * **Session History:** A detailed log of all past sessions.
   * **Goal Tracking:** Create, track, and manage your daily, weekly, or monthly focus goals.
   * **Data Analytics:** Visualize your productivity with charts and graphs.
   * **Data Export:** Download your session and goal data as JSON or CSV.
@@ -113,14 +113,12 @@ pnpm install
 pnpm dev
 ```
 
-*(This command is from `package.json`)*
-
 -----
 
 ## 🗺️ Future Roadmap
 
   * [✔️] **Toast Notifications:** Add user feedback for actions (e.g., "Session Saved\!", "Error").
-  * [ ] **Picture-in-Picture (PiP):** Add a PiP mode for the timer on desktop.
+  * [✔️] **Picture-in-Picture (PiP):** Add a PiP mode for the timer on desktop.
   * [ ] **Mobile Notifications:** Implement session controls via the mobile notification panel.
   * [ ] **UI/Theme Refinement:** Continue to refine the design, themes, and user experience.
 
