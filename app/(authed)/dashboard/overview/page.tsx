@@ -5,6 +5,7 @@ import { Suspense } from 'react';
 import SessionTracker from '@/app/(authed)/dashboard/_components/PipSessionTracker';
 import Loading from './loading';
 import DashboardContent from "../_components/DashboardContent"
+// import ThreadVisualizer from '@/app/(authed)/dashboard/_components/ThreadVisualizer';
 
 export default function Dashboard() {
   return (

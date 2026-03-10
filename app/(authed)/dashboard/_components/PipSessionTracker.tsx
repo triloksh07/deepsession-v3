@@ -9,7 +9,15 @@ import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { FileText, Eye } from 'lucide-react';
 import { DEFAULT_SESSION_TYPES } from '@/config/sessionTypes.config';
-import type { Session } from '@/types';
+// import type { Session } from '@/types';
+import type {
+    Session, SessionTags, ActivityType, SourceType,
+} from '@/types';
+// import type {
+//     Session,
+//     ActivityType,
+//     SourceType
+// } from '@/app/(authed)/dashboard/_lib/types';
 import { EditableProps } from '@/types/typeDeclaration';
 import { SafeMarkdown } from '@/components/SafeMarkdown';
 import { TimerDisplay } from "@/app/(authed)/dashboard/_components/TimerDisplay";
@@ -74,7 +82,6 @@ function EditableTitle({ value, onChange, disabled = false }: EditableProps) {
     );
 }
 
-
 export default function SessionTracker() {
     // 1. Logic Hook (The Brain)
     const {
@@ -89,17 +96,40 @@ export default function SessionTracker() {
     // 3. Local Form State
     const [formTitle, setFormTitle] = useState('');
     const [formType, setFormType] = useState('');
+    // New Local Form States
+    // const [formTitle, setFormTitle] = useState('');
+    const [formTopic, setFormTopic] = useState('');
+    const [formActivity, setFormActivity] = useState<ActivityType | ''>('');
+    const [formSource, setFormSource] = useState<SourceType | ''>('');
 
+    // const handleStart = (e: React.FormEvent) => {
+    //     e.preventDefault();
+    //     const dataToSubmit: Partial<Session> = {
+    //         title: formTitle.trim(),
+    //         type: formType || 'Other',
+    //         notes: ''
+    //     }
+    //     startSession(dataToSubmit as Session);
+    // };
+
+    // Updated handleStart
     const handleStart = (e: React.FormEvent) => {
         e.preventDefault();
+        // THE FIX: Split by comma, trim whitespace, remove empty strings
+        const parsedTopics = formTopic
+            ? formTopic.split(',').map(t => t.trim()).filter(Boolean)
+            : [];
         const dataToSubmit: Partial<Session> = {
             title: formTitle.trim(),
-            type: formType || 'Other',
+            tags: {
+                topic: parsedTopics,
+                activity: (formActivity as ActivityType) || 'Other',
+                source: (formSource as SourceType) || 'Independent Work',
+            },
             notes: ''
-        }
+        };
         startSession(dataToSubmit as Session);
     };
-
 
     return (
         <div className="flex items-center justify-center p-2 bg-background">
@@ -110,6 +140,7 @@ export default function SessionTracker() {
                         <CardTitle className="text-muted-foreground">Start a new Focus Session</CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-6">
+                        {/*Updated Form JSX */}
                         <form onSubmit={handleStart} className="space-y-4">
                             <div className="space-y-2">
                                 <Label htmlFor="title">Session Title</Label>
@@ -122,7 +153,7 @@ export default function SessionTracker() {
                                     className="focus:border-[#8A2BE2]"
                                 />
                             </div>
-                            <div className="space-y-2">
+                            {/* <div className="space-y-2">
                                 <Label htmlFor="type">Session Type</Label>
                                 <Select value={formType} onValueChange={setFormType}>
                                     <SelectTrigger><SelectValue placeholder="Select type" /></SelectTrigger>
@@ -130,7 +161,46 @@ export default function SessionTracker() {
                                         {DEFAULT_SESSION_TYPES.map(t => <SelectItem key={t.id} value={t.id}>{t.label}</SelectItem>)}
                                     </SelectContent>
                                 </Select>
+                            </div> */}
+
+                            {/* NEW HYBRID TAGGING INPUTS */}
+                            <div className="space-y-2">
+                                <Label htmlFor="topic">Topic / Thread (Optional)</Label>
+                                <Input
+                                    id="topic"
+                                    value={formTopic}
+                                    onChange={(e) => setFormTopic(e.target.value)}
+                                    placeholder="e.g., JS Internals, Blog..."
+                                />
                             </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <Label htmlFor="activity">Activity</Label>
+                                    <Select value={formActivity} onValueChange={(val) => setFormActivity(val as ActivityType)}>
+                                        <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
+                                        <SelectContent>
+                                            {['Coding', 'Learning', 'Writing', 'Planning', 'Practice', "Debugging", 'Other'].map(act => (
+                                                <SelectItem key={act} value={act}>{act}</SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+
+                                <div className="space-y-2">
+                                    <Label htmlFor="source">Source</Label>
+                                    <Select value={formSource} onValueChange={(val) => setFormSource(val as SourceType)}>
+                                        <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
+                                        <SelectContent>
+                                            {['Cohort', 'Self-Study', 'Personal Project', 'Other'].map(src => (
+                                                <SelectItem key={src} value={src}>{src}</SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                            </div>
+
+                            {/* Start Controller */}
                             <Button type="submit" className="w-full mt-4 bg-linear-to-r from-[#8A2BE2] to-[#5D3FD3] text-white font-bold text-base shadow-lg shadow-[#8A2BE2]/30 hover:opacity-90 transition-opacity cursor-pointer">Start Focus</Button>
                         </form>
                     </CardContent>
@@ -143,7 +213,8 @@ export default function SessionTracker() {
                         <div className="flex flex-col items-center space-y-2">
                             {currentSession.type && (
                                 <span className="bg-purple-700/20 text-purple-500 text-xs font-semibold px-3 py-1 rounded-full">
-                                    {DEFAULT_SESSION_TYPES.find(t => t.id === currentSession.type)?.label || currentSession.type}
+                                    {/* {DEFAULT_SESSION_TYPES.find(t => t.id === currentSession.type)?.label || currentSession.type} */}
+                                    {DEFAULT_SESSION_TYPES.find(t => t.id === currentSession.SessionTags.activity)?.label || currentSession.type}
                                 </span>
                             )}
                             <div className="w-full text-black"><EditableTitle value={currentSession.title} onChange={updateTitle} /></div>

@@ -1,6 +1,14 @@
 import { z } from 'zod';
 
 // Validation Rules
+
+// new tags object schema
+export const SessionTagsSchema = z.object({
+    topic: z.array(z.string()),
+    activity: z.string(),
+    source: z.string(),
+  });
+
 export const SessionSchema = z.object({
     // We DO NOT include 'id' here because Firestore generates it
     // We DO NOT include 'userId' here if it's strictly in the path, 
@@ -8,7 +16,8 @@ export const SessionSchema = z.object({
     userId: z.string().min(1, "User ID is required"),
 
     title: z.string().min(0).max(150, "Title is too long"),
-    session_type_id: z.string(),
+    // session_type_id: z.string(),
+    tags: SessionTagsSchema,
     notes: z.string().optional().default(""),
 
     // Timestamps must be valid ISO strings

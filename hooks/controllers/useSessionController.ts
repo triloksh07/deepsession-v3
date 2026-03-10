@@ -8,6 +8,7 @@ import { db, auth } from "@/lib/firebase";
 import { doc, collection } from "firebase/firestore";
 import { toast } from "sonner";
 import { Session } from "@/types";
+// import type { } from "@/types";
 import logger from "@/lib/utils/logger";
 import { setStorageItem, removeStorageItem, getStorageItem } from "@/lib/utils/storage";
 
@@ -17,7 +18,8 @@ export function useSessionController() {
         isActive,
         onBreak,
         title,
-        type,
+        // type,
+        tags,
         storeNotes,
         // sessionStartTime,
         // breaks,
@@ -32,7 +34,8 @@ export function useSessionController() {
             onBreak: state.onBreak,
             storeStartSession: state.startSession,
             title: state.title,
-            type: state.type,
+            // type: state.type,
+            tags: state.tags,
             storeNotes: state.notes,
             // sessionStartTime: state.sessionStartTime,
             // breaks: state.breaks,
@@ -129,11 +132,13 @@ export function useSessionController() {
         // We generate ID client-side so we don't need to wait for server allocation
         const newSessionId = doc(collection(db, "session")).id;
 
+        // --- NEW PAYLOAD STRUCTURE ---
         const finalData = {
             id: newSessionId,
             userId: user.uid,
             title: title,
-            session_type_id: type,
+            tags: state.tags,
+            // session_type_id: type,
             notes: draftNotes || "",
             breaks: sanitizedBreaks,
             started_at: state.sessionStartTime,
@@ -159,7 +164,7 @@ export function useSessionController() {
             logger.error("Critical session clear error:", err);
             toast.error("Failed to save session.");
         }
-    }, [draftNotes, createSessionMutation, clearActiveSession]);
+    }, [draftNotes, createSessionMutation, clearActiveSession, title]);
 
     return {
         // Derived State for UI
@@ -168,7 +173,7 @@ export function useSessionController() {
         isOnBreak: onBreak,
         currentSession: {
             title,
-            type,
+            tags,
             // startTime: sessionStartTime,
             phase: onBreak ? "ON BREAK" : "ACTIVE"
         },

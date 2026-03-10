@@ -5,13 +5,16 @@ import { persist } from 'zustand/middleware';
 import { Session } from '@/types'
 import logger from "@/lib/utils/logger";
 import { toast } from "sonner";
+import { SessionTags } from "@/app/(authed)/dashboard/_lib/types/index";
 
 export interface Break { start: string; end?: string; }
-export interface SessionInfo { title: string; type: string; notes: string; }
+// export interface SessionInfo { title: string; type: string; notes: string; }
+export interface SessionInfo { title: string; tags: SessionTags; notes: string; }
 
 interface TimerState {
   title: string;
-  type: string;
+  // type: string;
+  tags: SessionTags;
   notes: string;
   sessionStartTime: string | null;
   onBreak: boolean;
@@ -30,7 +33,10 @@ interface TimerState {
 export const useSessionStore = create<TimerState>()(
   persist((set, get) => ({
     // --- INITIAL STATE ---
-    title: '', type: '', notes: '',
+    title: '',
+    // type: '',
+    notes: '',
+    tags: { topic: [], activity: "Other", source: "Self-Study", },
     sessionStartTime: null, onBreak: false, breaks: [], isActive: false,
 
     // --- 2. This is the "listener" action ---

@@ -11,6 +11,7 @@ import { calculateDuration } from '@/lib/timeUtils';
 import { useSessionStore } from '@/store/sessionStore';
 import { useDashboard } from '../_components/DashboardProvider';
 import logger from "@/lib/utils/logger";
+import ThreadVisualizer from '@/app/(authed)/dashboard/_components/ThreadVisualizer';
 
 export default function DashboardContent() {
   const { sessions: SessionsData } = useDashboard();
@@ -75,6 +76,7 @@ export default function DashboardContent() {
   return (
     <div className="space-y-6">
 
+
       {/* Today's Stats */}
       <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
         <Card>
@@ -124,14 +126,14 @@ export default function DashboardContent() {
             <CardHeader>
               <CardTitle>Today&apos;s Activity</CardTitle>
             </CardHeader>
-          <CardContent className="text-center py-8">
-            <Clock className="mx-auto h-10 w-10 mb-4 text-muted-foreground opacity-50" />
-            {/* <h3 className="font-medium mb-2"></h3> */}
-            <p className="text-muted-foreground mb-4">
-            No Activity
-            </p>
-          </CardContent>
-        </Card>
+            <CardContent className="text-center py-8">
+              <Clock className="mx-auto h-10 w-10 mb-4 text-muted-foreground opacity-50" />
+              {/* <h3 className="font-medium mb-2"></h3> */}
+              <p className="text-muted-foreground mb-4">
+                No Activity
+              </p>
+            </CardContent>
+          </Card>
         }
         {Object.keys(typeBreakdown).length > 0 && (
           <Card>
@@ -183,6 +185,12 @@ export default function DashboardContent() {
           </Card>
         )}
       </div>
+
+      {/* Threads Visualizer */}
+      <div className="grid grsid-cols-1 md:gsrid-cols-2 gap-6 mt-6">
+        <ThreadVisualizer />
+      </div>
+      
       {sessions.length === 0 && (
         <Card>
           <CardContent className="text-center py-8">

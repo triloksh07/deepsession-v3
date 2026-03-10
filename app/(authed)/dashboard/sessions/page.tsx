@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Clock, Calendar, FileText, Edit, Trash2 } from 'lucide-react';
 import type { Session } from '@/types';
-import { DEFAULT_SESSION_TYPES } from '@/config/sessionTypes.config';
+// import { DEFAULT_SESSION_TYPES } from '@/config/sessionTypes.config';
 import { useUpdateSession, useDeleteSession } from '@/hooks/CRUD/useSessionMutations';
 import {
   AlertDialog,
@@ -33,10 +33,10 @@ import { useDashboard } from '../_components/DashboardProvider';
 import { SafeMarkdown } from '@/components/SafeMarkdown';
 import { GroupedVirtuoso } from "react-virtuoso";
 
-const sessionTypeMap = new Map<string, { label: string; color: string }>(
-  DEFAULT_SESSION_TYPES.map((type) => [type.id, { label: type.label, color: type.color }])
-);
-const getSessionTypeInfo = (id: string) => sessionTypeMap.get(id) || { label: id, color: '#808080' };
+// const sessionTypeMap = new Map<string, { label: string; color: string }>(
+//   DEFAULT_SESSION_TYPES.map((type) => [type.id, { label: type.label, color: type.color }])
+// );
+// const getSessionTypeInfo = (id: string) => sessionTypeMap.get(id) || { label: id, color: '#808080' };
 
 function SessionsListSkeleton() {
   return (
@@ -173,7 +173,12 @@ const SessionsContent = memo(
           // Renders the Session Card
           itemContent={(index) => {
             const session = flatSessions[index];
-            const typeInfo = getSessionTypeInfo(session.type);
+            // const typeInfo = getSessionTypeInfo(session.type);
+            // --- FALLBACK LOGIC FOR LEGACY DATA ---
+            // If it's an old session, it won't have `session.tags`. We map the old `type` to `activity`.
+            const activity = session.tags?.activity || 'Other';
+            const source = session.tags?.source;
+            const topics = session.tags?.topic || [];
 
             return (
               <div className="pb-3"> {/* Spacing between cards */}
@@ -212,7 +217,40 @@ const SessionsContent = memo(
                       </div>
                     )}
 
-                    <div className="col-span-2 relative flex items-center justify-between mt-4">
+                    {/* --- NEW HYBRID TAG RENDERING --- */}
+                    <div className="col-span-2 relative flex items-center justify-between mt-4 border-t pt-4">
+                      <div className="flex flex-wrap gap-2">
+                        {/* Y-Axis: The Constraints */}
+                        <Badge variant="default" className="bg-[#8A2BE2] hover:bg-[#5D3FD3]">
+                          {activity}
+                        </Badge>
+
+                        {source && (
+                          <Badge variant="outline" className="text-muted-foreground border-muted-foreground/30">
+                            {source}
+                          </Badge>
+                        )}
+
+                        {/* X-Axis: The Threads */}
+                        {topics.map((topicStr, i) => (
+                          <Badge key={i} variant="secondary" className="bg-muted">
+                            # {topicStr}
+                          </Badge>
+                        ))}
+                      </div>
+
+                      <div className="flex items-center justify-center space-x-2">
+                        <Button variant="destructive" className="p-1 h-8 w-8" onClick={() => onRequestDelete(session)}>
+                          <Trash2 size={16} />
+                        </Button>
+                        <Button onClick={() => onEdit(session)} className="p-1 h-8 w-8" variant="ghost">
+                          <Edit size={16} />
+                        </Button>
+                      </div>
+                    </div>
+
+                    {/* Old */}
+                    {/* <div className="col-span-2 relative flex items-center justify-between mt-4">
                       <Badge variant="default" className="capitalize" style={{ backgroundColor: typeInfo.color }}>
                         {typeInfo.label}
                       </Badge>
@@ -224,7 +262,7 @@ const SessionsContent = memo(
                           <Edit size={16} />
                         </Button>
                       </div>
-                    </div>
+                    </div> */}
                   </CardContent>
                 </Card>
               </div>
@@ -246,12 +284,22 @@ export default function SessionLog() {
   const [newNotes, setNewNotes] = useState(''); // ADDED: Local state for notes
   const [deleteCandidate, setDeleteCandidate] = useState<Session | null>(null);
 
+  // New state vars
+  const [editActivity, setEditActivity] = useState('');
+  const [editSource, setEditSource] = useState('');
+  const [editTopics, setEditTopics] = useState(''); // Stores comma-separated string
+
   // --- STABLE HANDLERS ---
   // Must use useCallback so SessionsContent doesn't see "new" functions on every render
   const handleEditClick = useCallback((session: Session) => {
     setEditingSession(session);
     setNewTitle(String(session.title || ''));
     setNewNotes(String(session.notes || '')); // ADDED: Init notes
+
+    // Hydrate tags for editing
+    setEditActivity(session.tags?.activity || 'Other');
+    setEditSource(session.tags?.source || 'Independent Work');
+    setEditTopics((session.tags?.topic || []).join(', '));
   }, []);
 
   const handleSaveEdit = () => {
@@ -261,6 +309,14 @@ export default function SessionLog() {
     if (newTitle.trim() !== '') updates.title = newTitle;
     // Always update notes if they changed (even to empty)
     if (newNotes !== editingSession.notes) updates.notes = newNotes;
+
+    // Compile the new tags
+    const parsedTopics = editTopics.split(',').map(t => t.trim()).filter(Boolean);
+    updates.tags = {
+      topic: parsedTopics,
+      activity: editActivity as any,
+      source: editSource as any
+    };
 
     if (Object.keys(updates).length > 0) {
       updateSession({ id: editingSession.id, updates });
@@ -308,6 +364,26 @@ export default function SessionLog() {
                 id="title"
                 value={newTitle}
                 onChange={(e) => setNewTitle(e.target.value)}
+                className="col-span-3"
+              />
+            </div>
+
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="topics" className="text-right">Topics</Label>
+              <Input
+                id="topics"
+                value={editTopics}
+                onChange={(e) => setEditTopics(e.target.value)}
+                placeholder="JS Internals, Freelance, etc (comma separated)"
+                className="col-span-3"
+              />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="activity" className="text-right">Activity</Label>
+              <Input
+                id="activity"
+                value={editActivity}
+                onChange={(e) => setEditActivity(e.target.value)}
                 className="col-span-3"
               />
             </div>

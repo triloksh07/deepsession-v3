@@ -4,13 +4,15 @@ import { doc, setDoc, addDoc, collection, serverTimestamp } from 'firebase/fires
 import { db, auth } from '@/lib/firebase';
 import { toast } from 'sonner';
 import type { Session } from '@/types';
+import { SessionTags } from '@/types';
 import { SessionSchema } from '@/lib/schemas/sessionSchema';
 import logger from "@/lib/utils/logger";
 
 interface FinalV0DataInput {
   userId: string;
   title: string;
-  session_type_id: string;
+  // session_type_id: string; // REPLACED
+  tags: SessionTags;           // ADDED
   notes: string;
   breaks: any[];
   started_at: string;         // ISO
@@ -73,7 +75,8 @@ export const useCreateSession = () => {
       const optimisticSession: Session = {
         id: newSession.id,
         title: newSession.title,
-        type: newSession.session_type_id,
+        // type: newSession.session_type_id,
+        tags: newSession.tags,
         notes: newSession.notes,
         sessionTime: newSession.total_focus_ms,
         breakTime: newSession.total_break_ms,

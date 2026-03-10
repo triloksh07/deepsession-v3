@@ -35,6 +35,11 @@ const updateSessionOnFirebase = async ({
     adaptedUpdates.notes = updates.notes;
   }
 
+  // --- NEW: Allow tags to pass through to Firestore ---
+  if (updates.tags !== undefined) {
+    adaptedUpdates.tags = updates.tags;
+  }
+
   if (Object.keys(adaptedUpdates).length === 0) {
     return;
   }

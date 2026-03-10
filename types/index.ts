@@ -1,15 +1,23 @@
-// This is the data structure our app will use
-// Based on components/SessionLog.tsx
+
+export type ActivityType = "Coding" | "Learning" | "Writing" | "Planning" | "Practice" | "Debugging" | "Other";
+export type SourceType = "Cohort" | 'Independent Work' | "Self-Study" | "Personal Project" | "Freelance" | "Other";
+
+export interface SessionTags {
+  topic: string[];
+  activity: ActivityType;
+  source: SourceType;
+}
+
 export interface Session {
   id: string;
   title: string;
-  type: string;
+  type?: string;
+  tags: SessionTags;
   notes: string;
   sessionTime: number;
   breakTime: number;
   startTime: number;
   endTime: number;
-
   date: string;
 }
 

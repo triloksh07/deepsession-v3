@@ -12,7 +12,8 @@ interface FirestoreSessionData {
     id: string;
     userId: string;
     title: string;
-    session_type_id: string;
+    session_type_id?: string;
+    tags?: any;
     notes?: string;
     started_at: string; // ISO String
     ended_at: string;  // ISO String
@@ -52,7 +53,14 @@ const adaptDocToSession = (doc: any) => {
     return {
         id: doc.id,
         title: data.title || '',
-        type: data.session_type_id,
+        // type: data.session_type_id,
+        // --- NEW DATA HYDRATION LOGIC ---
+        // If it has new tags, use them. If it's an old session, map the old type to 'activity'.
+        tags: data.tags || {
+            topic: [],
+            activity: data.session_type_id || 'Other',
+            source: 'Self-Study'
+        },
         notes: data.notes || '',
         sessionTime: Number(data.total_focus_ms),
         breakTime: Number(data.total_break_ms),
