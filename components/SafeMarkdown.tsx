@@ -29,7 +29,7 @@ export const SafeMarkdown = memo(({ content, className }: SafeMarkdownProps) => 
   if (!content) return null;
 
   return (
-    <div className={`prose prose-sm dark:prose-invert max-w-none wrap-break-word ${className}`}>
+    <div className={`prose prose-lg dark:prose-invert max-w-none whitespace-pre-wrap break-word ${className}`}>
       <ReactMarkdown
         rehypePlugins={[[rehypeSanitize, securitySchema]]}
         components={{
