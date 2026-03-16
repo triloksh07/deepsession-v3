@@ -4,9 +4,9 @@ import React, { Suspense, useEffect, useState, useCallback, memo, useMemo } from
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Clock, Calendar, FileText, Edit, Trash2 } from 'lucide-react';
-import type { Session } from '@/types';
+import type { Session, ActivityType, SourceType } from '@/types';
 // import { DEFAULT_SESSION_TYPES } from '@/config/sessionTypes.config';
-import { useUpdateSession, useDeleteSession } from '@/hooks/CRUD/useSessionMutations';
+import { useUpdateSession, useDeleteSession, useBatchUpdateSession, BatchUpdateIntent } from '@/hooks/CRUD/useSessionMutations';
 import {
     AlertDialog,
     AlertDialogAction,
@@ -32,11 +32,13 @@ import { Textarea } from '@/components/ui/textarea'; // IMPORTED
 import { useDashboard } from '../_components/DashboardProvider';
 import { SafeMarkdown } from '@/components/SafeMarkdown';
 import { GroupedVirtuoso } from "react-virtuoso";
+import { toast } from 'sonner';
 
 import { Search, Filter, X } from 'lucide-react'; // Make sure to add these to your lucide-react imports
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 import HighlightMatch from '@/app/(authed)/dashboard/_components/HighlightMatch';
+import AutocompleteInput from '@/app/(authed)/dashboard/_components/AutoCompleteInput';
 
 // const sessionTypeMap = new Map<string, { label: string; color: string }>(
 //   DEFAULT_SESSION_TYPES.map((type) => [type.id, { label: type.label, color: type.color }])
@@ -65,7 +67,9 @@ const SessionsContent = memo(
             onEdit: (s: Session) => void;
             onRequestDelete: (s: Session) => void;
         }) {
-        const { sessions: sessionList, isLoading } = useDashboard();
+        const { sessions: sessionList, isLoading, userId } = useDashboard();
+        const { mutate: updateMultipleSessionsTag, isPending: isBulkUpdatePending } = useBatchUpdateSession(userId);
+
         // const sessions = useMemo(() => {
         //   return sessionList ?? [];
         // }, [sessionList]);
@@ -103,15 +107,46 @@ const SessionsContent = memo(
         //   return { groupCounts: counts, flatSessions: flat, groupDates: sortedDates };
         // }, [sessions]);
 
-        // --- NEW START ---
-
-        // --- 1. FILTER STATE ---
+        // --- FILTER STATE ---
         const [searchInput, setSearchInput] = useState(''); // Fast state for the UI
         const [debouncedSearch, setDebouncedSearch] = useState(''); // Slow state for the engine
         const [activityFilter, setActivityFilter] = useState('All');
         const [sourceFilter, setSourceFilter] = useState('All');
         const [topicFilter, setTopicFilter] = useState('All');
 
+        // ------ STATE VARIABLES FOR BATCH UPDATE ------
+        // New State for Batching
+        const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+        const [isBatchModalOpen, setIsBatchModalOpen] = useState(false);
+
+        // Batch From State
+        const [batchActivity, setBatchActivity] = useState('');
+        const [batchSource, setBatchSource] = useState('');
+        const [batchTopics, setBatchTopics] = useState('');
+
+        const [isAppendingTopics, setIsAppendingTopics] = useState(true);
+
+        // Wipes stale data every time the modal opens
+        useEffect(() => {
+            if (isBatchModalOpen) {
+                setBatchTopics('');
+                setBatchActivity('');
+                setBatchSource('');
+                setIsAppendingTopics(true); // Default to safe merging
+            }
+        }, [isBatchModalOpen]);
+
+        //  The Toggle Function
+        const toggleSelection = useCallback((id: string) => {
+            setSelectedIds((prev) => {
+                const next = new Set(prev);
+                if (next.has(id)) next.delete(id)
+                else next.add(id);
+                return next;
+            });
+        }, []);
+        const clearSelection = () => setSelectedIds(new Set());
+        // ------ STATE VARIABLES FOR BATCH UPDATE END------
 
         // --- NEW: THE DEBOUNCE ENGINE ---
         // Waits 300ms after you stop typing to update the actual filter
@@ -122,7 +157,7 @@ const SessionsContent = memo(
             return () => clearTimeout(timer);
         }, [searchInput]);
 
-        // --- 2. DYNAMIC OPTION EXTRACTOR ---
+        // --- DYNAMIC OPTION EXTRACTOR ---
         // Scans your cache to find all unique tags so the dropdowns auto-update
         const filterOptions = useMemo(() => {
             const activities = new Set<string>();
@@ -199,8 +234,6 @@ const SessionsContent = memo(
             return { groupCounts: counts, flatSessions: flat, groupDates: sortedDates };
         }, [displayedSessions]);
 
-        // --- NEW END ---
-
         // Formatters (Moved inside or kept outside, fine here)
         const formatTime = (milliseconds: number) => {
             const totalSeconds = Math.floor(milliseconds / 1000);
@@ -223,7 +256,6 @@ const SessionsContent = memo(
         const formatDateTime = (timestamp: number) => {
             return new Date(timestamp).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
         };
-
 
         // ✅ SMART LOADING STATE:
         // Only show Skeleton if we are loading AND we have 0 sessions.
@@ -349,6 +381,8 @@ const SessionsContent = memo(
                         // Renders the Session Card
                         itemContent={(index) => {
                             const session = flatSessions[index];
+                            const isSelected = selectedIds.has(session.id);
+
                             // const typeInfo = getSessionTypeInfo(session.type);
                             // --- FALLBACK LOGIC FOR LEGACY DATA ---
                             // If it's an old session, it won't have `session.tags`. We map the old `type` to `activity`.
@@ -358,7 +392,16 @@ const SessionsContent = memo(
 
                             return (
                                 <div className="pb-3"> {/* Spacing between cards */}
-                                    <Card className="transition-shadow hover:shadow-md">
+                                    <div className="pt-4">
+                                        <Input
+                                            placeholder="Checkbox for bulk selection"
+                                            type="checkbox"
+                                            className="w-5 h-5 cursor-pointer accent-[#8A2BE2]"
+                                            checked={isSelected}
+                                            onChange={() => toggleSelection(session.id)}
+                                        />
+                                    </div>
+                                    <Card className={`flex-1 transition-shadow hover:shadow-md ${isSelected ? 'ring-2 ring-[#8A2BE2]/50' : ''}`}>
                                         <CardContent className="p-4 grid grid-cols-2 gap-2">
                                             <div className="col-span-2 flex items-start justify-between mb-3">
                                                 <div className="flex justify-center items-center space-x-3">
@@ -466,6 +509,196 @@ const SessionsContent = memo(
                         }}
                     />
                 </div>)}
+
+                {/* FLOATING BATCH ACTION BAR */}
+                {selectedIds.size > 0 && (
+                    <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-background border shadow-lg rounded-full px-6 py-3 flex items-center gap-4 animate-in slide-in-from-bottom-5">
+                        <span className="text-sm font-medium bg-[#8A2BE2]/10 text-[#8A2BE2] px-3 py-1 rounded-full">
+                            {selectedIds.size} selected
+                        </span>
+                        <Button variant="ghost" size="sm" onClick={clearSelection}>
+                            Cancel
+                        </Button>
+                        <Button size="sm" className="bg-[#8A2BE2] hover:bg-[#5D3FD3]" onClick={() => setIsBatchModalOpen(true)}>
+                            Batch Edit Tags
+                        </Button>
+                    </div>
+                )}
+
+                {/* BATCH EDIT MODAL */}
+                <Dialog open={isBatchModalOpen} onOpenChange={setIsBatchModalOpen}>
+                    <DialogContent>
+                        <DialogHeader>
+                            <DialogTitle>Batch Update {selectedIds.size} Sessions</DialogTitle>
+                            <DialogDescription>
+                                Warning: This will overwrite the existing tags for all selected sessions.
+                            </DialogDescription>
+                        </DialogHeader>
+
+                        <div className="grid gap-4 py-4">
+                            {/* TOPICS: Text Input + Clickable Badges */}
+                            <div className="grid grid-cols-4 items-center gap-4">
+                                <Label htmlFor="batch-topics" className="text-right">Topics</Label>
+                                <div className="col-span-3 space-y-2">
+                                    <Input
+                                        id="batch-topics"
+                                        value={batchTopics}
+                                        onChange={(e) => setBatchTopics(e.target.value)}
+                                        placeholder="Leave blank to keep existing topics..."
+                                        className="col-span-3"
+                                    />
+                                    {/* QUICK ADD PILLS: Click to append existing topics */}
+                                    {filterOptions.topics.length > 0 && (
+                                        <div className="flex flex-wrap gap-1.5 mt-2">
+                                            {filterOptions.topics.map(topic => (
+                                                <Badge
+                                                    key={topic}
+                                                    variant="secondary"
+                                                    className="cursor-pointer hover:bg-[#8A2BE2] hover:text-white transition-colors"
+                                                    onClick={() => {
+                                                        // Smart append: don't add if it's already there
+                                                        const current = batchTopics.split(',').map(t => t.trim()).filter(Boolean);
+                                                        if (!current.includes(topic)) {
+                                                            setBatchTopics(current.length ? `${batchTopics}, ${topic}` : topic);
+                                                        }
+                                                    }}
+                                                >
+                                                    + {topic}
+                                                </Badge>
+                                            ))}
+                                        </div>
+                                    )}
+
+                                    {/* THE MERGE CONTROLLER */}
+                                    {batchTopics.trim() !== '' && (
+                                        <div className="flex items-center space-x-2 bg-muted/50 p-2 rounded-md border text-sm">
+                                            <input
+                                                type="checkbox"
+                                                id="append-toggle"
+                                                checked={isAppendingTopics}
+                                                onChange={(e) => setIsAppendingTopics(e.target.checked)}
+                                                className="accent-[#8A2BE2] w-4 h-4 cursor-pointer"
+                                            />
+                                            <label htmlFor="append-toggle" className="cursor-pointer font-medium">
+                                                {isAppendingTopics
+                                                    ? "Keep existing topics and add these"
+                                                    : <span className="text-destructive font-bold">Overwrite all existing topics</span>}
+                                            </label>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* ACTIVITY: Native HTML Datalist (Autocomplete + Custom) */}
+                            <div className="grid grid-cols-4 items-center gap-4">
+                                <Label htmlFor="batch-activity" className="text-right">Activity</Label>
+                                <div className="col-span-3">
+                                    {/* <Input
+                                        id="batch-activity"
+                                        // list="existing-activities" // Connects to the datalist below
+                                        value={batchActivity}
+                                        onChange={(e) => setBatchActivity(e.target.value as ActivityType)}
+                                        placeholder="Leave blank to keep existing..."
+                                    /> */}
+                                    {/* <datalist id="existing-activities">
+                                        {filterOptions.activities.map(act => (
+                                            <option key={act} value={act} />
+                                        ))}
+                                    </datalist> */}
+                                    <AutocompleteInput
+                                        value={batchActivity}
+                                        onChange={setBatchActivity}
+                                        options={filterOptions.activities}
+                                        placeholder="Leave blank to keep existing..."
+                                    />
+                                </div>
+                            </div>
+
+                            {/* SOURCE: Native HTML Datalist */}
+                            <div className="grid grid-cols-4 items-center gap-4">
+                                <Label htmlFor="batch-source" className="text-right">Source</Label>
+                                <div className="col-span-3">
+                                    {/* <Input
+                                        // id="batch-source"
+                                        // list="existing-sources"
+                                        value={batchSource}
+                                        onChange={(e) => setBatchSource(e.target.value as SourceType)}
+                                        placeholder="Leave blank to keep existing..."
+                                    /> */}
+                                    {/* <datalist id="existing-sources">
+                                        {filterOptions.sources.map(src => (
+                                            <option key={src} value={src} />
+                                        ))}
+                                    </datalist> */}
+                                    <AutocompleteInput
+                                        value={batchSource}
+                                        onChange={setBatchSource}
+                                        options={filterOptions.sources}
+                                        placeholder="Leave blank to keep existing..."
+                                    />
+                                </div>
+                            </div>
+                        </div>
+
+                        <DialogFooter>
+                            <Button variant="outline" onClick={() => setIsBatchModalOpen(false)}>Cancel</Button>
+                            <Button
+                                className="bg-[#8A2BE2] hover:bg-[#5D3FD3]"
+                                onClick={() => {
+
+                                    // const payload: Record<string, any> = {};
+
+                                    // // 1. Only add to payload if the user actually typed something
+                                    // if (batchTopics.trim() !== '') {
+                                    //     const parsedTopics = batchTopics.split(',').map(t => t.trim()).filter(Boolean);
+                                    //     // payload['tags.topic'] = parsedTopics;
+                                    // }
+
+                                    // const intent: BatchUpdateIntent = {
+                                    //     appendTopics: isAppendingTopics,
+                                    // };
+
+                                    // if (batchActivity.trim() !== '') {
+                                    //     payload['tags.activity'] = batchActivity.trim();
+                                    // }
+
+                                    // if (batchSource.trim() !== '') {
+                                    //     payload['tags.source'] = batchSource.trim();
+                                    // }
+
+                                    const parsedTopics = batchTopics.split(',').map(t => t.trim()).filter(Boolean);
+
+                                    const intent: BatchUpdateIntent = {
+                                        appendTopics: isAppendingTopics,
+                                    };
+
+                                    // Only attach fields if the user actually typed something
+                                    if (parsedTopics.length > 0) intent.topics = parsedTopics;
+                                    if (batchActivity.trim() !== '') intent.activity = batchActivity.trim();
+                                    if (batchSource.trim() !== '') intent.source = batchSource.trim();
+
+                                    // 2. Prevent empty batches
+                                    if (Object.keys(intent).length === 1) { // Only appendTopics is there
+                                        toast.error("Nothing to update", { description: "All fields are blank." });
+                                        return;
+                                    }
+
+                                    // 3. Fire mutation
+                                    updateMultipleSessionsTag({
+                                        ids: Array.from(selectedIds),
+                                        intent,
+                                    });
+
+                                    // 4. Cleanup
+                                    setIsBatchModalOpen(false);
+                                    clearSelection();
+                                }}
+                            >
+                                Apply to {selectedIds.size} Sessions
+                            </Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
             </div>
 
         );

@@ -1,6 +1,6 @@
 
-export type ActivityType = "Coding" | "Learning" | "Writing" | "Planning" | "Practice" | "Debugging" | "Other";
-export type SourceType = "Cohort" | 'Independent Work' | "Self-Study" | "Personal Project" | "Freelance" | "Other";
+export type ActivityType = "Coding" | "Learning" | "Writing" | "Planning" | "Practice" | "Debugging" | "Other" | "";
+export type SourceType = "Cohort" | 'Independent Work' | "Self-Study" | "Personal Project" | "Freelance" | "Other" | "";
 
 export interface SessionTags {
   topic: string[];
