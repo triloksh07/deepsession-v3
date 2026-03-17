@@ -728,8 +728,8 @@ export default function SessionLog() {
         setNewNotes(String(session.notes || '')); // ADDED: Init notes
 
         // Hydrate tags for editing
-        setEditActivity(session.tags?.activity || 'Other');
-        setEditSource(session.tags?.source || 'Independent Work');
+        setEditActivity(session.tags?.activity || '');
+        setEditSource(session.tags?.source || '');
         setEditTopics((session.tags?.topic || []).join(', '));
     }, []);
 
@@ -745,8 +745,8 @@ export default function SessionLog() {
         const parsedTopics = editTopics.split(',').map(t => t.trim()).filter(Boolean);
         updates.tags = {
             topic: parsedTopics,
-            activity: editActivity as any,
-            source: editSource as any
+            activity: editActivity,
+            source: editSource
         };
 
         if (Object.keys(updates).length > 0) {
