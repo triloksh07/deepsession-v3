@@ -7,6 +7,7 @@
 //   activity: ActivityType;
 //   source: SourceType;
 // }
+
 export interface SessionTags {
   topic: string[];
   activity: string;
@@ -24,6 +25,18 @@ export interface Session {
   startTime: number;
   endTime: number;
   date: string;
+}
+
+export type TagCategory = 'Activity' | 'Source' | 'Topic' | '';
+
+export interface Tag {
+  id: string;          // (Firestore auto-ID)
+  userId: string;
+  name: string;
+  category: TagCategory; // Enforces the 3-way taxonomy
+  color?: string;
+  createdAt: number;
+  isArchived: boolean; // Instead of deleting tags and breaking old sessions, we archive them
 }
 
 export interface Goal {
