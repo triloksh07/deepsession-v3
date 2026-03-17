@@ -16,7 +16,7 @@ export interface SessionTags {
 export interface Session {
   id: string;
   title: string;
-  type?: string;
+  type: string;
   tags: SessionTags;
   notes: string;
   sessionTime: number;

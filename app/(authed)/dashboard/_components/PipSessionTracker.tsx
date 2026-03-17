@@ -11,7 +11,7 @@ import { FileText, Eye } from 'lucide-react';
 import { DEFAULT_SESSION_TYPES } from '@/config/sessionTypes.config';
 // import type { Session } from '@/types';
 import type {
-    Session, SessionTags, ActivityType, SourceType,
+    Session
 } from '@/types';
 // import type {
 //     Session,
@@ -99,8 +99,8 @@ export default function SessionTracker() {
     // New Local Form States
     // const [formTitle, setFormTitle] = useState('');
     const [formTopic, setFormTopic] = useState('');
-    const [formActivity, setFormActivity] = useState<ActivityType | ''>('');
-    const [formSource, setFormSource] = useState<SourceType | ''>('');
+    const [formActivity, setFormActivity] = useState('');
+    const [formSource, setFormSource] = useState('');
 
     // const handleStart = (e: React.FormEvent) => {
     //     e.preventDefault();
@@ -123,8 +123,8 @@ export default function SessionTracker() {
             title: formTitle.trim(),
             tags: {
                 topic: parsedTopics,
-                activity: (formActivity as ActivityType) || 'Other',
-                source: (formSource as SourceType) || 'Independent Work',
+                activity: (formActivity) || '',
+                source: (formSource) || '',
             },
             notes: ''
         };
@@ -177,7 +177,7 @@ export default function SessionTracker() {
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-2">
                                     <Label htmlFor="activity">Activity</Label>
-                                    <Select value={formActivity} onValueChange={(val) => setFormActivity(val as ActivityType)}>
+                                    <Select value={formActivity} onValueChange={(val) => setFormActivity(val)}>
                                         <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
                                         <SelectContent>
                                             {['Coding', 'Learning', 'Writing', 'Planning', 'Practice', "Debugging", 'Other'].map(act => (
@@ -189,7 +189,7 @@ export default function SessionTracker() {
 
                                 <div className="space-y-2">
                                     <Label htmlFor="source">Source</Label>
-                                    <Select value={formSource} onValueChange={(val) => setFormSource(val as SourceType)}>
+                                    <Select value={formSource} onValueChange={(val) => setFormSource(val)}>
                                         <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
                                         <SelectContent>
                                             {['Cohort', 'Self-Study', 'Personal Project', 'Other'].map(src => (
@@ -214,7 +214,7 @@ export default function SessionTracker() {
                             {currentSession.type && (
                                 <span className="bg-purple-700/20 text-purple-500 text-xs font-semibold px-3 py-1 rounded-full">
                                     {/* {DEFAULT_SESSION_TYPES.find(t => t.id === currentSession.type)?.label || currentSession.type} */}
-                                    {DEFAULT_SESSION_TYPES.find(t => t.id === currentSession.SessionTags.activity)?.label || currentSession.type}
+                                    {DEFAULT_SESSION_TYPES.find(t => t.id === currentSession.tags.activity)?.label || currentSession.type}
                                 </span>
                             )}
                             <div className="w-full text-black"><EditableTitle value={currentSession.title} onChange={updateTitle} /></div>

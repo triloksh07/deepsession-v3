@@ -11,7 +11,7 @@ import logger from "@/lib/utils/logger";
 interface FinalV0DataInput {
   userId: string;
   title: string;
-  // session_type_id: string; // REPLACED
+  session_type_id: string; // REPLACED
   tags: SessionTags;           // ADDED
   notes: string;
   breaks: any[];
@@ -75,7 +75,7 @@ export const useCreateSession = () => {
       const optimisticSession: Session = {
         id: newSession.id,
         title: newSession.title,
-        // type: newSession.session_type_id,
+        type: newSession.session_type_id,
         tags: newSession.tags,
         notes: newSession.notes,
         sessionTime: newSession.total_focus_ms,

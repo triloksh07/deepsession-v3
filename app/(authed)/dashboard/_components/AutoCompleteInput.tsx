@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { Input } from '@/components/ui/input';
-import type { Session, ActivityType, SourceType } from '@/types';
+import type { Session } from '@/types';
 
 const AutocompleteInput = ({
     value,

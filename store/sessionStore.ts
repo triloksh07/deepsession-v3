@@ -13,7 +13,7 @@ export interface SessionInfo { title: string; tags: SessionTags; notes: string; 
 
 interface TimerState {
   title: string;
-  // type: string;
+  type: string;
   tags: SessionTags;
   notes: string;
   sessionStartTime: string | null;
@@ -34,7 +34,7 @@ export const useSessionStore = create<TimerState>()(
   persist((set, get) => ({
     // --- INITIAL STATE ---
     title: '',
-    // type: '',
+    type: '',
     notes: '',
     tags: { topic: [], activity: "Other", source: "Self-Study", },
     sessionStartTime: null, onBreak: false, breaks: [], isActive: false,

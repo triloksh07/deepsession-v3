@@ -4,7 +4,8 @@ import React, { Suspense, useEffect, useState, useCallback, memo, useMemo } from
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Clock, Calendar, FileText, Edit, Trash2 } from 'lucide-react';
-import type { Session, ActivityType, SourceType } from '@/types';
+// import type { Session, ActivityType, SourceType } from '@/types';
+import type { Session } from '@/types';
 // import { DEFAULT_SESSION_TYPES } from '@/config/sessionTypes.config';
 import { useUpdateSession, useDeleteSession, useBatchUpdateSession, BatchUpdateIntent } from '@/hooks/CRUD/useSessionMutations';
 import {

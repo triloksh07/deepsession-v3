@@ -137,7 +137,7 @@ function ExportPreview({ options, format }: ExportPreviewProps) {
 
     // Filter by session types
     filtered = filtered.filter(session =>
-      options.sessionTypes.includes(session.type)
+      options.sessionTypes.includes(session.type!)
     );
 
     return filtered;
