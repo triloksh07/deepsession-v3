@@ -35,6 +35,8 @@ import { SafeMarkdown } from '@/components/SafeMarkdown';
 import { GroupedVirtuoso } from "react-virtuoso";
 import { toast } from 'sonner';
 
+import logger from "@/lib/utils/logger";
+
 import { Search, Filter, X } from 'lucide-react'; // Make sure to add these to your lucide-react imports
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
@@ -111,9 +113,15 @@ const SessionsContent = memo(
         // --- FILTER STATE ---
         const [searchInput, setSearchInput] = useState(''); // Fast state for the UI
         const [debouncedSearch, setDebouncedSearch] = useState(''); // Slow state for the engine
+
+        // NEW: Custom Date Range States (Format: YYYY-MM-DD)
+        const [startDate, setStartDate] = useState('');
+        const [endDate, setEndDate] = useState('');
+
         const [activityFilter, setActivityFilter] = useState('All');
         const [sourceFilter, setSourceFilter] = useState('All');
         const [topicFilter, setTopicFilter] = useState('All');
+        const [timeRange, setTimeRange] = useState('All'); // 'All', '7d', '30d'
 
         // ------ STATE VARIABLES FOR BATCH UPDATE ------
         // New State for Batching
@@ -146,7 +154,136 @@ const SessionsContent = memo(
                 return next;
             });
         }, []);
+
         const clearSelection = () => setSelectedIds(new Set());
+
+        // --- DATA EXPORT ENGINE ---
+
+        // JSON FORMAT
+        // const handleCopyForAI = async () => {
+        //     if (selectedIds.size === 0) return;
+
+        //     // 1. Filter the already-sorted flat list to maintain chronological order
+        //     const sessionsToCopy = flatSessions.filter(s => selectedIds.has(s.id));
+
+        //     // 2. Strip the notes and format timestamps into human/AI-readable strings
+        //     const aiPayload = sessionsToCopy.map(s => ({
+        //         title: s.title || 'Untitled',
+        //         date: s.date,
+        //         startTime: new Date(s.startTime).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }),
+        //         endTime: new Date(s.endTime).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }),
+        //         focusTimeMinutes: Math.floor(s.sessionTime / 60000),
+        //         breakTimeMinutes: Math.floor(s.breakTime / 60000),
+        //         tags: {
+        //             activity: s.tags?.activity || 'Other',
+        //             source: s.tags?.source || '',
+        //             topics: s.tags?.topic || []
+        //         }
+        //     }));
+
+        //     // 3. Push to clipboard
+        //     try {
+        //         await navigator.clipboard.writeText(JSON.stringify(aiPayload, null, 2));
+        //         toast.success(`Copied ${selectedIds.size} sessions to clipboard`, {
+        //             description: "Ready for AI analysis."
+        //         });
+
+        //         // Optional: clearSelection(); if you want it to uncheck everything after copying
+        //     } catch (err) {
+        //         logger.error("Clipboard API failed:", err);
+        //         toast.error("Failed to copy to clipboard");
+        //     }
+        // };
+
+        // --- TOON DATA EXPORT ENGINE ---
+        // const handleCopyForAI = async () => {
+        //     if (selectedIds.size === 0) return;
+
+        //     // 1. Filter the already-sorted flat list
+        //     const sessionsToCopy = flatSessions.filter(s => selectedIds.has(s.id));
+
+        //     // 2. The TOON Header: Defines array length and keys once to save tokens
+        //     const header = `sessions[${sessionsToCopy.length}]{title,date,start,end,focusMin,breakMin,activity,source,topics}:`;
+
+        //     // 3. The TOON Rows: Tabular format (indented by 2 spaces)
+        //     const rows = sessionsToCopy.map(s => {
+        //         // Escape commas in titles so they don't break the CSV-style parser
+        //         const title = s.title ? `"${s.title.replace(/"/g, '""')}"` : "Untitled";
+        //         const date = s.date;
+
+        //         // Using 24-hour format saves the ' AM' / ' PM' tokens
+        //         const start = new Date(s.startTime).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: false });
+        //         const end = new Date(s.endTime).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: false });
+
+        //         const focus = Math.floor(s.sessionTime / 60000);
+        //         const brk = Math.floor(s.breakTime / 60000);
+
+        //         // Flattening the tags object for optimal TOON encoding
+        //         const activity = s.tags?.activity || 'Other';
+        //         const source = s.tags?.source || 'None';
+        //         const topics = s.tags?.topic?.length ? s.tags.topic.join('|') : 'None';
+
+        //         // TOON syntax requires rows under a tabular header to be indented
+        //         return `  ${title},${date},${start},${end},${focus},${brk},${activity},${source},${topics}`;
+        //     });
+
+        //     // Combine header and rows
+        //     const toonPayload = [header, ...rows].join('\n');
+
+        //     // 4. Push to clipboard
+        //     try {
+        //         await navigator.clipboard.writeText(toonPayload);
+        //         toast.success(`Copied ${selectedIds.size} sessions in TOON format`, {
+        //             description: "Ready for token-efficient AI analysis."
+        //         });
+        //     } catch (err) {
+        //         logger.error("Clipboard API failed:", err);
+        //         toast.error("Failed to copy to clipboard");
+        //     }
+        // };
+
+        // --- TOON DATA EXPORT ENGINE (V2) ---
+        const handleCopyForAI = async () => {
+            if (displayedSessions.length === 0) return;
+
+            if (!startDate || !endDate) {
+                toast.info("No date range selected");
+                return;
+            }
+
+            // 1. Sort chronologically (oldest to newest) so S1 is the first session
+            const sortedForExport = [...displayedSessions].sort((a, b) => a.startTime - b.startTime);
+
+            // 2. Add 'id' to the TOON Header
+            const header = `sessions[${sortedForExport.length}]{id,title,date,start,end,focusMin,breakMin,activity,topics}:`;
+
+            // 3. Generate Rows with Mapping ID (S1, S2, S3...)
+            const rows = sortedForExport.map((s, index) => {
+                const mapId = `M${index + 1}`; // <--- THE MAPPING MARKER
+                const title = s.title ? `"${s.title.replace(/"/g, '""')}"` : "Untitled";
+                const date = s.date;
+                const start = new Date(s.startTime).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: false });
+                const end = new Date(s.endTime).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: false });
+                const focus = Math.floor(s.sessionTime / 60000);
+                const brk = Math.floor(s.breakTime / 60000);
+                const activity = s.tags?.activity || 'Other';
+                const topics = s.tags?.topic?.length ? s.tags.topic.join('|') : 'None';
+
+                return `  ${mapId},${title},${date},${start},${end},${focus},${brk},${activity},${topics}`;
+            });
+
+            const toonPayload = [header, ...rows].join('\n');
+
+            try {
+                await navigator.clipboard.writeText(toonPayload);
+                toast.success(`Copied ${sortedForExport.length} sessions for AI`, {
+                    description: "Mapping IDs (M1, M2...) included."
+                });
+            } catch (err) {
+                toast.error("Failed to copy to clipboard");
+            }
+        };
+
         // ------ STATE VARIABLES FOR BATCH UPDATE END------
 
         // --- NEW: THE DEBOUNCE ENGINE ---
@@ -209,8 +346,29 @@ const SessionsContent = memo(
                 });
             }
 
+            // NEW: Time Range Filter
+            if (timeRange !== 'All') {
+                const now = Date.now();
+                const msPerDay = 24 * 60 * 60 * 1000;
+                const days = timeRange === '7d' ? 7 : 30;
+                const cutoff = now - (days * msPerDay);
+                list = list.filter(s => s.startTime >= cutoff);
+            }
+
+            // NEW: Precise Date Boundary Filter
+            if (startDate) {
+                // Set to start of the day (00:00:00)
+                const startTimestamp = new Date(startDate + 'T00:00:00').getTime();
+                list = list.filter(s => s.startTime >= startTimestamp);
+            }
+            if (endDate) {
+                // Set to end of the day (23:59:59)
+                const endTimestamp = new Date(endDate + 'T23:59:59').getTime();
+                list = list.filter(s => s.startTime <= endTimestamp);
+            }
+
             return list;
-        }, [sessionList, debouncedSearch, activityFilter, sourceFilter, topicFilter]);
+        }, [sessionList, debouncedSearch, activityFilter, sourceFilter, topicFilter, timeRange, startDate, endDate]);
 
         // --- 4. LIST GROUPING (Running on Filtered Data) ---
         const { groupCounts, flatSessions, groupDates } = useMemo(() => {
@@ -263,7 +421,7 @@ const SessionsContent = memo(
         // If we have cached sessions (stale), show them immediately (isLoading is true, but sessions.length > 0).
         // const shouldShowSkeleton = isLoading && (!sessions || sessions.length === 0);
         const shouldShowSkeleton = isLoading && (!sessionList || sessionList.length === 0);
-        const hasActiveFilters = debouncedSearch !== '' || activityFilter !== 'All' || sourceFilter !== 'All' || topicFilter !== 'All';
+        const hasActiveFilters = debouncedSearch !== '' || activityFilter !== 'All' || sourceFilter !== 'All' || topicFilter !== 'All' || startDate || endDate;
 
 
         if (shouldShowSkeleton) {
@@ -323,6 +481,35 @@ const SessionsContent = memo(
                                 {filterOptions.topics.map(topic => <SelectItem key={topic} value={topic}># {topic}</SelectItem>)}
                             </SelectContent>
                         </Select>
+
+                        {/* NEW: TIME RANGE SELECTOR */}
+                        <Select value={timeRange} onValueChange={setTimeRange}>
+                            <SelectTrigger><SelectValue placeholder="Time Range" /></SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="All">All Time</SelectItem>
+                                <SelectItem value="7d">Last 7 Days</SelectItem>
+                                <SelectItem value="30d">Last 30 Days</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
+
+                    {/* NEW: CUSTOM DATE RANGE PICKER */}
+                    <div className="flex items-center space-x-2 md:col-span-1">
+                        <Input
+                            type="date"
+                            value={startDate}
+                            onChange={(e) => setStartDate(e.target.value)}
+                            className="text-lg"
+                            title="Start Date"
+                        />
+                        <span className="text-muted-foreground text-xs">-</span>
+                        <Input
+                            type="date"
+                            value={endDate}
+                            onChange={(e) => setEndDate(e.target.value)}
+                            className="text-lg"
+                            title="End Date"
+                        />
                     </div>
 
                     {hasActiveFilters && (
@@ -334,11 +521,23 @@ const SessionsContent = memo(
                                 variant="ghost"
                                 size="sm"
                                 onClick={() => {
-                                    setDebouncedSearch(''); setActivityFilter('All'); setSourceFilter('All'); setTopicFilter('All');
+                                    setDebouncedSearch(''); setActivityFilter('All'); setSourceFilter('All'); setTopicFilter('All'); setStartDate(''); setEndDate('');
                                 }}
                                 className="h-8 text-xs text-muted-foreground hover:text-foreground"
                             >
                                 <X className="mr-1 h-3 w-3" /> Clear Filters
+                            </Button>
+                        </div>
+                    )}
+
+
+                    {timeRange && (
+                        <div className="flex justify-between items-center mb-2">
+                            <h2 className="text-sm font-semibold text-muted-foreground">Time Range Filters</h2>
+                            {/* NEW: ONE-CLICK EXPORT BUTTON */}
+                            <Button variant="outline" size="sm" onClick={handleCopyForAI} className="border-[#8A2BE2]/50 text-[#8A2BE2] hover:bg-[#8A2BE2]/10 h-8">
+                                <FileText className="w-4 h-4 mr-2" />
+                                Export Filtered to AI
                             </Button>
                         </div>
                     )}
@@ -407,7 +606,6 @@ const SessionsContent = memo(
                                             <div className="col-span-2 flex items-start justify-between mb-3">
                                                 <div className="flex justify-center items-center space-x-3">
                                                     <div className="flex-1">
-                                                        {/* <h3 className="font-medium mb-1">{session.title}</h3> */}
                                                         <h3 className="font-medium mb-1">
                                                             <HighlightMatch text={session.title || 'Untitled Session'} highlight={debouncedSearch} />
                                                         </h3>
@@ -442,7 +640,7 @@ const SessionsContent = memo(
                                                     ) : (
                                                         // READ MODE: Prioritize the beautiful Markdown formatting
                                                         <div className="prose prose-lg dark:prose-invert max-w-none">
-                                                            <SafeMarkdown content={session.notes} />
+                                                            {/* <SafeMarkdown content={session.notes} /> */}
                                                         </div>
                                                     )}
                                                 </div>
@@ -520,6 +718,12 @@ const SessionsContent = memo(
                         <Button variant="ghost" size="sm" onClick={clearSelection}>
                             Cancel
                         </Button>
+
+                        {/* NEW: AI EXPORT BUTTON */}
+                        {/* <Button variant="outline" size="sm" onClick={handleCopyForAI} className="border-[#8A2BE2]/50 hover:bg-[#8A2BE2]/10">
+                            Copy for AI
+                        </Button> */}
+
                         <Button size="sm" className="bg-[#8A2BE2] hover:bg-[#5D3FD3]" onClick={() => setIsBatchModalOpen(true)}>
                             Batch Edit Tags
                         </Button>
