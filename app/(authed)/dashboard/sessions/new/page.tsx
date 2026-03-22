@@ -6,26 +6,11 @@ import { Badge } from '@/components/ui/badge';
 import { Clock, Calendar, FileText, Edit, Trash2, Layers, Edit3 } from 'lucide-react';
 // import type { Session, ActivityType, SourceType } from '@/types';
 import type { Session } from '@/types';
+import { UpdateSessionInput } from "@/hooks/CRUD/useSessionMutations";
 // import { DEFAULT_SESSION_TYPES } from '@/config/sessionTypes.config';
 import { useUpdateSession, useDeleteSession, useBatchUpdateSession, BatchUpdateIntent } from '@/hooks/CRUD/useSessionMutations';
-import {
-    AlertDialog,
-    AlertDialogAction,
-    AlertDialogCancel,
-    AlertDialogContent,
-    AlertDialogDescription,
-    AlertDialogFooter,
-    AlertDialogHeader,
-    AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-} from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, } from "@/components/ui/alert-dialog";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, } from "@/components/ui/dialog";
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -42,6 +27,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 
 import HighlightMatch from '@/app/(authed)/dashboard/_components/HighlightMatch';
 import AutocompleteInput from '@/app/(authed)/dashboard/_components/AutoCompleteInput';
+
+import { SessionInspector } from "../_component/SessionInspector";
+import { BatchEditorPanel } from "../_component/BatchInspector";
+import { EmptyInspectorState } from "../_component/EmptyInspector";
 
 // const sessionTypeMap = new Map<string, { label: string; color: string }>(
 //   DEFAULT_SESSION_TYPES.map((type) => [type.id, { label: type.label, color: type.color }])
@@ -72,6 +61,7 @@ const SessionsContent = memo(
         }) {
         const { sessions: sessionList, isLoading, userId } = useDashboard();
         const { mutate: updateMultipleSessionsTag, isPending: isBulkUpdatePending } = useBatchUpdateSession(userId);
+        const { mutate: updateSession } = useUpdateSession(userId || '');
 
         // const sessions = useMemo(() => {
         //   return sessionList ?? [];
@@ -138,12 +128,9 @@ const SessionsContent = memo(
         // --- MASTER-DETAIL STATE ---
         const [selectedInspectorSession, setSelectedInspectorSession] = useState<Session | null>(null);
 
-        // --- INLINE EDITING STATES ---
-        const [isEditingNotes, setIsEditingNotes] = useState(false);
-        const [isEditingDetails, setIsEditingDetails] = useState(false);
-
         // Temporary state to hold edits before saving
         const [editDraft, setEditDraft] = useState<Partial<Session>>({});
+        const [topicDraft, setTopicDraft] = useState<string>(""); // NEW: Holds raw text while typing
 
         // Wipes stale data every time the modal opens
         useEffect(() => {
@@ -292,6 +279,80 @@ const SessionsContent = memo(
             } catch (err) {
                 toast.error("Failed to copy to clipboard");
             }
+        };
+
+        // --- NEW: THE INLINE SAVE ENGINE ---
+        // const handleSaveDetails = () => {
+        //     if (!selectedInspectorSession) return;
+
+        //     // Only send the fields that actually changed
+        //     const updates: Partial<Session> = {};
+
+        //     if (editDraft.title !== undefined) updates.title = editDraft.title;
+
+        //     // If tags were modified in the draft, merge them
+        //     if (editDraft.tags) {
+        //         updates.tags = {
+        //             ...selectedInspectorSession.tags,
+        //             ...editDraft.tags
+        //         };
+        //     }
+
+        //     if (Object.keys(updates).length > 0) {
+        //         updateSession({
+        //             id: selectedInspectorSession.id,
+        //             updates
+        //         });
+
+        //         // Optimistically update the local inspector state so it feels instant
+        //         setSelectedInspectorSession(prev => prev ? { ...prev, ...updates } : null);
+        //     }
+
+        //     // Exit edit mode
+        //     setIsEditingDetails(false);
+        //     setEditDraft({});
+        // };
+        // --- THE BULLETPROOF SAVE ENGINE ---
+        const handleSaveDetails = () => {
+            if (!selectedInspectorSession) return;
+
+            const updates: Partial<Session> = {};
+
+            if (editDraft.title !== undefined) updates.title = editDraft.title;
+
+            // Reconstruct the tags payload
+            let updatedTags = { ...selectedInspectorSession.tags };
+            let tagsChanged = false;
+
+            if (editDraft.tags?.activity) {
+                updatedTags.activity = editDraft.tags.activity;
+                tagsChanged = true;
+            }
+            if (editDraft.tags?.source !== undefined) {
+                updatedTags.source = editDraft.tags.source;
+                tagsChanged = true;
+            }
+
+            // Process the raw topic string into a clean array on save
+            if (topicDraft !== "") {
+                const cleanTopics = topicDraft.split(',').map(t => t.trim()).filter(Boolean);
+                // Only update if it actually changed to prevent unnecessary writes
+                if (JSON.stringify(cleanTopics) !== JSON.stringify(updatedTags.topic)) {
+                    updatedTags.topic = cleanTopics;
+                    tagsChanged = true;
+                }
+            }
+
+            if (tagsChanged) updates.tags = updatedTags;
+
+            if (Object.keys(updates).length > 0) {
+                updateSession({ id: selectedInspectorSession.id, updates });
+                setSelectedInspectorSession(prev => prev ? { ...prev, ...updates } : null);
+            }
+
+            setIsEditingDetails(false);
+            setEditDraft({});
+            setTopicDraft(""); // Reset
         };
 
         // ------ STATE VARIABLES FOR BATCH UPDATE END------
@@ -456,7 +517,7 @@ const SessionsContent = memo(
             <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 relative items-start">
 
                 {/* THE FILTER BAR */}
-                <div className="hidden col-span-5 bg-background/95 backdrop-blur p-4 rounded-lg border shadow-sm space-y-4 sticky top-24 z-20">
+                <div className="col-span-5 bg-background/95 backdrop-blur p-4 rounded-lg border shadow-sm space-y-4 sticky top-24 z-20">
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
                         <div className="relative md:col-span-1">
                             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -732,7 +793,6 @@ const SessionsContent = memo(
                                         <div
                                             className={`group flex items-stretch gap-3 p-3 rounded-lg border transition-all cursor-pointer ${isSelected ? 'bg-[#8A2BE2]/5 border-[#8A2BE2]/50' : 'bg-card hover:bg-muted/50 border-border/50'
                                                 }`}
-                                            // TODO: We will add onClick={() => setSelectedInspectorSession(session)} here in Step 2
                                             onClick={() => setSelectedInspectorSession(session)}
                                         >
                                             {/* 1. Batch Selection Checkbox */}
@@ -759,7 +819,7 @@ const SessionsContent = memo(
                                                 <div className="flex items-center justify-between gap-4">
 
                                                     {/* Left: Title & Tags */}
-                                                    <div className="truncate flex-1">
+                                                    {/* <div className="truncate flex-1">
                                                         <h3 className="font-semibold text-sm truncate">
                                                             <HighlightMatch text={session.title || 'Untitled Session'} highlight={debouncedSearch} />
                                                         </h3>
@@ -768,10 +828,10 @@ const SessionsContent = memo(
                                                             <span className="text-border/50">•</span>
                                                             <span className="truncate">{activity}</span>
                                                         </div>
-                                                    </div>
+                                                    </div> */}
 
                                                     {/* Right: Focus Metrics */}
-                                                    <div className="flex flex-col items-end shrink-0">
+                                                    {/* <div className="flex flex-col items-end shrink-0">
                                                         <span className="font-mono text-sm font-medium">
                                                             {formatTime(session.sessionTime)}
                                                         </span>
@@ -780,8 +840,24 @@ const SessionsContent = memo(
                                                                 <Clock className="w-3 h-3" /> {formatTime(session.breakTime)} brk
                                                             </span>
                                                         )}
-                                                    </div>
+                                                    </div> */}
 
+                                                    {/* Left: Title & Tags */}
+                                                    <div className="truncate flex-1">
+                                                        <h3 className="font-semibold text-sm truncate flex items-center gap-2">
+                                                            <HighlightMatch text={session.title || 'Untitled Session'} highlight={debouncedSearch} />
+
+                                                            {/* NEW: THE NOTES BADGE */}
+                                                            {session.notes && session.notes.trim().length > 0 && (
+                                                                <FileText className="w-3 h-3 text-muted-foreground opacity-60" name="Contains Notes" />
+                                                            )}
+                                                        </h3>
+                                                        <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
+                                                            <span>{formatDateTime(session.startTime)} - {formatDateTime(session.endTime)}</span>
+                                                            <span className="text-border/50">•</span>
+                                                            <span className="truncate">{activity}</span>
+                                                        </div>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
@@ -792,7 +868,7 @@ const SessionsContent = memo(
                     </div>)}
 
                     {/* FLOATING BATCH ACTION BAR */}
-                    {selectedIds.size > 0 && (
+                    {/* {selectedIds.size > 0 && (
                         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-background border shadow-lg rounded-full px-6 py-3 flex items-center gap-4 animate-in slide-in-from-bottom-5">
                             <span className="text-sm font-medium bg-[#8A2BE2]/10 text-[#8A2BE2] px-3 py-1 rounded-full">
                                 {selectedIds.size} selected
@@ -801,16 +877,15 @@ const SessionsContent = memo(
                                 Cancel
                             </Button>
 
-                            {/* NEW: AI EXPORT BUTTON */}
-                            {/* <Button variant="outline" size="sm" onClick={handleCopyForAI} className="border-[#8A2BE2]/50 hover:bg-[#8A2BE2]/10">
-                            Copy for AI
-                        </Button> */}
+                            <Button variant="outline" size="sm" onClick={handleCopyForAI} className="border-[#8A2BE2]/50 hover:bg-[#8A2BE2]/10">
+                                Copy for AI
+                            </Button>
 
                             <Button size="sm" className="bg-[#8A2BE2] hover:bg-[#5D3FD3]" onClick={() => setIsBatchModalOpen(true)}>
                                 Batch Edit Tags
                             </Button>
                         </div>
-                    )}
+                    )} */}
 
                     {/* BATCH EDIT MODAL */}
                     <Dialog open={isBatchModalOpen} onOpenChange={setIsBatchModalOpen}>
@@ -933,26 +1008,6 @@ const SessionsContent = memo(
                                     className="bg-[#8A2BE2] hover:bg-[#5D3FD3]"
                                     onClick={() => {
 
-                                        // const payload: Record<string, any> = {};
-
-                                        // // 1. Only add to payload if the user actually typed something
-                                        // if (batchTopics.trim() !== '') {
-                                        //     const parsedTopics = batchTopics.split(',').map(t => t.trim()).filter(Boolean);
-                                        //     // payload['tags.topic'] = parsedTopics;
-                                        // }
-
-                                        // const intent: BatchUpdateIntent = {
-                                        //     appendTopics: isAppendingTopics,
-                                        // };
-
-                                        // if (batchActivity.trim() !== '') {
-                                        //     payload['tags.activity'] = batchActivity.trim();
-                                        // }
-
-                                        // if (batchSource.trim() !== '') {
-                                        //     payload['tags.source'] = batchSource.trim();
-                                        // }
-
                                         const parsedTopics = batchTopics.split(',').map(t => t.trim()).filter(Boolean);
 
                                         const intent: BatchUpdateIntent = {
@@ -988,162 +1043,36 @@ const SessionsContent = memo(
                     </Dialog>
                 </div>
 
-
-                {/* RIGHT COLUMN: THE DYNAMIC INSPECTOR PANEL (40%) */}
+                {/* RIGHT COLUMN */}
                 <div className="hidden lg:block lg:col-span-3 sticky top-24 h-[calc(100vh-8rem)]">
-
-                    {/* STATE 1: BATCH EDIT COMMAND CENTER */}
                     {selectedIds.size > 0 ? (
-                        <Card className="h-full flex flex-col border-[#8A2BE2]/50 shadow-md bg-[#8A2BE2]/5">
-                            <CardHeader className="border-b pb-4 shrink-0 bg-background/50">
-                                <CardTitle className="text-xl flex items-center gap-2 text-[#8A2BE2]">
-                                    <Layers className="w-5 h-5" />
-                                    Batch Editing {selectedIds.size} Sessions
-                                </CardTitle>
-                                <p className="text-sm text-muted-foreground mt-1">
-                                    Apply taxonomy updates to all selected items simultaneously.
-                                </p>
-                            </CardHeader>
-                            <CardContent className="flex-1 overflow-y-auto p-6 space-y-6">
-                                {/* TODO: Drop your existing V2 Batch Edit form UI here.
-                                    (Activity Select, Source Select, Autocomplete Topics, Intent Toggles)
-                                */}
-                                <div className="p-4 border border-dashed border-[#8A2BE2]/50 rounded text-center text-muted-foreground">
-                                    [ Insert V2 Batch Edit Form Controls Here ]
-                                </div>
-                            </CardContent>
-                            <CardFooter className="p-4 border-t shrink-0 flex justify-between bg-background/50">
-                                <Button variant="ghost" onClick={clearSelection}>Cancel</Button>
-                                <Button className="bg-[#8A2BE2] hover:bg-[#5D3FD3]" onClick={() => {/* Call your batch update hook */ }}>
-                                    Apply to {selectedIds.size} Sessions
-                                </Button>
-                            </CardFooter>
-                        </Card>
-
-                        // STATE 2: SINGLE SESSION INSPECTOR
+                        <BatchEditorPanel
+                            selectedCount={selectedIds.size}
+                            filterOptions={filterOptions}
+                            onCancel={clearSelection}
+                            onApply={(intent) => {
+                                updateMultipleSessionsTag({
+                                    ids: Array.from(selectedIds),
+                                    intent,
+                                });
+                                clearSelection();
+                            }}
+                        />
                     ) : selectedInspectorSession ? (
-                        <Card className="h-full flex flex-col overflow-hidden border-border/50 shadow-md transition-all">
-
-                            {/* HEADER (Title & Meta) */}
-                            <CardHeader className="bg-muted/30 border-b pb-4 shrink-0">
-                                <div className="flex items-start justify-between gap-4">
-                                    {isEditingDetails ? (
-                                        <Input
-                                            className="font-bold text-lg"
-                                            defaultValue={selectedInspectorSession.title}
-                                            onChange={(e) => setEditDraft({ ...editDraft, title: e.target.value })}
-                                            autoFocus
-                                        />
-                                    ) : (
-                                        <CardTitle className="text-xl leading-tight">
-                                            {selectedInspectorSession.title || 'Untitled Session'}
-                                        </CardTitle>
-                                    )}
-
-                                    {/* Action Buttons */}
-                                    <div className="flex gap-1 shrink-0">
-                                        {isEditingDetails ? (
-                                            <>
-                                                <Button variant="ghost" size="sm" onClick={() => setIsEditingDetails(false)}>Cancel</Button>
-                                                <Button size="sm" className="bg-[#8A2BE2] text-white" onClick={() => {/* Save Hook */ setIsEditingDetails(false) }}>Save</Button>
-                                            </>
-                                        ) : (
-                                            <>
-                                                <Button variant="ghost" size="icon" onClick={() => setIsEditingDetails(true)} title="Edit Details">
-                                                    <Edit className="w-4 h-4" />
-                                                </Button>
-                                                <Button variant="ghost" size="icon" onClick={() => setSelectedInspectorSession(null)}>
-                                                    <X className="w-4 h-4" />
-                                                </Button>
-                                            </>
-                                        )}
-                                    </div>
-                                </div>
-                                <div className="flex items-center gap-3 text-sm text-muted-foreground mt-2 font-mono">
-                                    <span>{formatDate(selectedInspectorSession.date)}</span>
-                                    <span>•</span>
-                                    <span>{formatTime(selectedInspectorSession.sessionTime)} Focus</span>
-                                </div>
-                            </CardHeader>
-
-                            {/* BODY (Scrollable) */}
-                            <CardContent className="flex-1 overflow-y-auto p-0 flex flex-col">
-
-                                {/* TAXONOMY ZONE */}
-                                <div className="p-4 border-b bg-muted/10">
-                                    {isEditingDetails ? (
-                                        <div className="space-y-4">
-                                            {/* TODO: Insert V3 Tag Autocomplete Inputs Here */}
-                                            <p className="text-sm text-muted-foreground">[ V3 Tag Selectors Go Here ]</p>
-                                        </div>
-                                    ) : (
-                                        <div className="flex flex-wrap gap-2">
-                                            <Badge className="bg-[#8A2BE2]">{selectedInspectorSession.tags?.activity || 'Other'}</Badge>
-                                            <Badge variant="outline">{selectedInspectorSession.tags?.source || 'No Source'}</Badge>
-                                            {(selectedInspectorSession.tags?.topic || []).map((t: string, i: number) => (
-                                                <Badge key={i} variant="secondary">#{t}</Badge>
-                                            ))}
-                                        </div>
-                                    )}
-                                </div>
-
-                                {/* NOTES ZONE (The Seamless Toggle) */}
-                                <div className="p-6 flex-1 flex flex-col">
-                                    <div className="flex items-center justify-between mb-4">
-                                        <h4 className="text-xs font-semibold uppercase text-muted-foreground">Session Notes</h4>
-                                        {!isEditingNotes && (
-                                            <Button variant="ghost" size="sm" className="h-6 text-xs" onClick={() => {
-                                                setEditDraft({ ...editDraft, notes: selectedInspectorSession.notes });
-                                                setIsEditingNotes(true);
-                                            }}>
-                                                <Edit3 className="w-3 h-3 mr-1" /> Edit Notes
-                                            </Button>
-                                        )}
-                                    </div>
-
-                                    {isEditingNotes ? (
-                                        <div className="flex-1 flex flex-col gap-3 h-full min-h-[300px]">
-                                            <Textarea
-                                                className="flex-1 resize-none font-mono text-sm p-4 bg-muted/5 focus-visible:ring-[#8A2BE2]"
-                                                placeholder="Write your notes in Markdown..."
-                                                value={editDraft.notes ?? selectedInspectorSession.notes ?? ''}
-                                                onChange={(e) => setEditDraft({ ...editDraft, notes: e.target.value })}
-                                                autoFocus
-                                            />
-                                            <div className="flex justify-end gap-2 shrink-0">
-                                                <Button variant="ghost" size="sm" onClick={() => setIsEditingNotes(false)}>Cancel</Button>
-                                                <Button size="sm" className="bg-[#8A2BE2]" onClick={() => {
-                                                    /* Call update hook with editDraft.notes */
-                                                    setIsEditingNotes(false);
-                                                }}>Save Notes</Button>
-                                            </div>
-                                        </div>
-                                    ) : (
-                                        <div
-                                            className="prose prose-sm dark:prose-invert max-w-none cursor-text hover:bg-muted/30 p-2 -mx-2 rounded transition-colors"
-                                            onClick={() => {
-                                                setEditDraft({ ...editDraft, notes: selectedInspectorSession.notes });
-                                                setIsEditingNotes(true);
-                                            }}
-                                            title="Click anywhere to edit notes"
-                                        >
-                                            {selectedInspectorSession.notes ? (
-                                                <SafeMarkdown content={selectedInspectorSession.notes} />
-                                            ) : (
-                                                <p className="text-muted-foreground italic opacity-50">Click to add notes...</p>
-                                            )}
-                                        </div>
-                                    )}
-                                </div>
-                            </CardContent>
-                        </Card>
-
-                        // STATE 3: EMPTY
+                        <SessionInspector
+                            session={selectedInspectorSession}
+                            onClose={() => setSelectedInspectorSession(null)}
+                            onUpdate={(id, updates) => {
+                                updateSession({ id, updates });
+                                setSelectedInspectorSession(prev => prev ? { ...prev, ...updates } : null);
+                            }}
+                        />
                     ) : (
-                        <div className="h-full border border-dashed rounded-lg flex flex-col items-center justify-center text-muted-foreground bg-muted/5">
-                            <FileText className="w-12 h-12 mb-4 opacity-20" />
-                            <p className="text-sm">Select a session to view or edit details</p>
-                        </div>
+                        // <div className="h-full border border-dashed rounded-lg flex flex-col items-center justify-center text-muted-foreground bg-muted/5">
+                        //     <FileText className="w-12 h-12 mb-4 opacity-20" />
+                        //     <p className="text-sm">Select a session to view or edit details</p>
+                        // </div>
+                        <EmptyInspectorState />
                     )}
                 </div>
             </div>
@@ -1210,6 +1139,7 @@ export default function SessionLog() {
         deleteSession(deleteCandidate.id);
         setDeleteCandidate(null);
     };
+
 
     return (
         <div className="space-y-6">
