@@ -32,11 +32,16 @@ const formatDate = (dateString: string) => {
 
 interface SessionInspectorProps {
     session: Session;
+    filterOptions: {
+        activities: string[];
+        sources: string[];
+        topics: string[];
+    };
     onClose: () => void;
     onUpdate: (id: string, updates: Partial<Session>) => void;
 }
 
-export function SessionInspector({ session, onClose, onUpdate }: SessionInspectorProps) {
+export function SessionInspector({ session, filterOptions, onClose, onUpdate }: SessionInspectorProps) {
     // 1. ISOLATED LOCAL STATE
     const [isEditingDetails, setIsEditingDetails] = useState(false);
     const [isEditingNotes, setIsEditingNotes] = useState(false);
@@ -52,26 +57,77 @@ export function SessionInspector({ session, onClose, onUpdate }: SessionInspecto
     }, [session.id]);
 
     // 2. THE CONSOLIDATED SAVE ENGINE
+    // const handleSave = () => {
+    //     const updates: Partial<Session> = {};
+    //     let tagsChanged = false;
+    //     let updatedTags = { ...session.tags };
+
+    //     if (editDraft.title !== undefined) updates.title = editDraft.title;
+    //     if (editDraft.notes !== undefined) updates.notes = editDraft.notes;
+
+    //     if (editDraft.tags?.activity) {
+    //         updatedTags.activity = editDraft.tags.activity;
+    //         tagsChanged = true;
+    //     }
+    //     if (editDraft.tags?.source !== undefined) {
+    //         updatedTags.source = editDraft.tags.source;
+    //         tagsChanged = true;
+    //     }
+
+    //     if (topicDraft !== "") {
+    //         const cleanTopics = topicDraft.split(',').map(t => t.trim()).filter(Boolean);
+    //         if (JSON.stringify(cleanTopics) !== JSON.stringify(updatedTags.topic)) {
+    //             updatedTags.topic = cleanTopics;
+    //             tagsChanged = true;
+    //         }
+    //     }
+
+    //     if (tagsChanged) updates.tags = updatedTags;
+
+    //     if (Object.keys(updates).length > 0) {
+    //         onUpdate(session.id, updates);
+    //     }
+
+    //     setIsEditingDetails(false);
+    //     setIsEditingNotes(false);
+    //     setEditDraft({});
+    //     setTopicDraft("");
+    // };
+
+    // 2. THE CONSOLIDATED STRICT SAVE ENGINE
     const handleSave = () => {
         const updates: Partial<Session> = {};
         let tagsChanged = false;
-        let updatedTags = { ...session.tags };
 
-        if (editDraft.title !== undefined) updates.title = editDraft.title;
-        if (editDraft.notes !== undefined) updates.notes = editDraft.notes;
+        // Ensure we don't crash if session.tags is undefined on older data
+        let updatedTags = { ...(session.tags || {}) };
 
-        if (editDraft.tags?.activity) {
+        // 1. Strict Title Check (Only update if defined AND different)
+        if (editDraft.title !== undefined && editDraft.title !== session.title) {
+            updates.title = editDraft.title;
+        }
+
+        // 2. Strict Notes Check
+        if (editDraft.notes !== undefined && editDraft.notes !== session.notes) {
+            updates.notes = editDraft.notes;
+        }
+
+        // 3. Strict Taxonomy Checks
+        if (editDraft.tags?.activity && editDraft.tags.activity !== session.tags?.activity) {
             updatedTags.activity = editDraft.tags.activity;
             tagsChanged = true;
         }
-        if (editDraft.tags?.source !== undefined) {
+        if (editDraft.tags?.source !== undefined && editDraft.tags.source !== session.tags?.source) {
             updatedTags.source = editDraft.tags.source;
             tagsChanged = true;
         }
 
+        // 4. Strict Topic Array Check
         if (topicDraft !== "") {
             const cleanTopics = topicDraft.split(',').map(t => t.trim()).filter(Boolean);
-            if (JSON.stringify(cleanTopics) !== JSON.stringify(updatedTags.topic)) {
+            const currentTopics = session.tags?.topic || [];
+
+            if (JSON.stringify(cleanTopics) !== JSON.stringify(currentTopics)) {
                 updatedTags.topic = cleanTopics;
                 tagsChanged = true;
             }
@@ -79,24 +135,26 @@ export function SessionInspector({ session, onClose, onUpdate }: SessionInspecto
 
         if (tagsChanged) updates.tags = updatedTags;
 
+        // 5. THE GATEKEEPER: Only fire the mutation if actual changes exist
         if (Object.keys(updates).length > 0) {
             onUpdate(session.id, updates);
         }
 
+        // Reset all UI states
         setIsEditingDetails(false);
         setIsEditingNotes(false);
         setEditDraft({});
-        setTopicDraft("");
+        // We do not reset topicDraft here unless you want the input to clear every time you click away.
     };
 
     // 3. RENDER THE UI
     return (
         <Card className="h-full flex flex-col overflow-hidden border-border/50 shadow-md transition-all">
-            
+
             {/* HEADER (Title & Meta) */}
             <CardHeader className="bg-muted/30 border-b pb-4 shrink-0">
                 <div className="flex items-start justify-between gap-4">
-                    {isEditingDetails ? (
+                    {/* {isEditingDetails ? (
                         <Input
                             className="font-bold text-lg"
                             defaultValue={session.title}
@@ -107,14 +165,40 @@ export function SessionInspector({ session, onClose, onUpdate }: SessionInspecto
                         <CardTitle className="text-xl leading-tight">
                             {session.title || 'Untitled Session'}
                         </CardTitle>
+                    )} */}
+                    {isEditingDetails ? (
+                        <Input className="font-bold text-lg focus-visible:ring-[#8A2BE2]" defaultValue={session.title} onChange={(e) =>
+                            setEditDraft({ ...editDraft, title: e.target.value })}
+                            onBlur={handleSave} // Auto-save when clicking outside
+                            onKeyDown={(e) => { if (e.key === 'Enter') handleSave(); }} // Auto-save on Enter
+                            autoFocus
+                        />
+                    ) : (
+                        <CardTitle className="text-xl leading-tight cursor-pointer hover:text-[#8A2BE2] transition-colors" onDoubleClick={() => {
+                            setEditDraft({ ...editDraft, title: session.title });
+                            setIsEditingDetails(true);
+                        }}
+                            title="Double-click to edit title"
+                        >
+                            {session.title || 'Untitled Session'}
+                        </CardTitle>
                     )}
 
                     {/* Action Buttons */}
                     <div className="flex gap-1 shrink-0">
                         {isEditingDetails ? (
                             <>
-                                <Button variant="ghost" size="sm" onClick={() => setIsEditingDetails(false)}>Cancel</Button>
+                                {/* <Button variant="ghost" size="sm" onClick={() => setIsEditingDetails(false)}>Cancel</Button> */}
+                                {/* <Button size="sm" className="bg-[#8A2BE2] text-white" onClick={handleSave}>Save</Button> */}
+
+                                {/* Use onMouseDown instead of onClick to prevent the input's onBlur from firing first and saving */}
+                                <Button variant="ghost" size="sm" onMouseDown={(e) => {
+                                    e.preventDefault();
+                                    setIsEditingDetails(false);
+                                    setEditDraft({});
+                                }}>Cancel</Button>
                                 <Button size="sm" className="bg-[#8A2BE2] text-white" onClick={handleSave}>Save</Button>
+
                             </>
                         ) : (
                             <>
@@ -149,39 +233,40 @@ export function SessionInspector({ session, onClose, onUpdate }: SessionInspecto
                                 {/* ACTIVITY SELECTOR */}
                                 <div className="space-y-1.5">
                                     <label className="text-xs font-semibold text-muted-foreground uppercase">Activity</label>
-                                    <Select
-                                        value={editDraft.tags?.activity || session.tags?.activity || 'Other'}
-                                        onValueChange={(val) => setEditDraft({
-                                            ...editDraft,
-                                            tags: { ...(editDraft.tags || session.tags), activity: val }
-                                        })}
+                                    <Select value={editDraft.tags?.activity || session.tags?.activity || ''} onValueChange={(val) => setEditDraft({
+                                        ...editDraft,
+                                        tags: { ...(editDraft.tags || session.tags), activity: val }
+                                    })}
                                     >
-                                        <SelectTrigger className="bg-background"><SelectValue placeholder="Select..." /></SelectTrigger>
+                                        <SelectTrigger className="bg-background">
+                                            <SelectValue placeholder="Select..." />
+                                        </SelectTrigger>
                                         <SelectContent>
-                                            <SelectItem value="Coding">Coding</SelectItem>
-                                            <SelectItem value="Reading">Reading</SelectItem>
-                                            <SelectItem value="Writing">Writing</SelectItem>
-                                            <SelectItem value="Other">Other</SelectItem>
+                                            {filterOptions.activities.map(act => (
+                                                <SelectItem key={act} value={act}>{act}</SelectItem>
+                                            ))}
                                         </SelectContent>
                                     </Select>
                                 </div>
-
                                 {/* SOURCE SELECTOR */}
                                 <div className="space-y-1.5">
                                     <label className="text-xs font-semibold text-muted-foreground uppercase">Source</label>
-                                    <Select
-                                        value={editDraft.tags?.source || session.tags?.source || ''}
-                                        onValueChange={(val) => setEditDraft({
-                                            ...editDraft,
-                                            tags: { ...(editDraft.tags || session.tags), source: val }
-                                        })}
+                                    <Select value={editDraft.tags?.source || session.tags?.source || ''} onValueChange={(val) => setEditDraft({
+                                        ...editDraft,
+                                        tags: { ...(editDraft.tags || session.tags), source: val }
+                                    })}
                                     >
-                                        <SelectTrigger className="bg-background"><SelectValue placeholder="Select..." /></SelectTrigger>
+                                        <SelectTrigger className="bg-background">
+                                            <SelectValue placeholder="Select..." />
+                                        </SelectTrigger>
                                         <SelectContent>
-                                            <SelectItem value="Independent">Independent</SelectItem>
-                                            <SelectItem value="Course">Course</SelectItem>
-                                            <SelectItem value="Book">Book</SelectItem>
-                                            <SelectItem value="None">None</SelectItem>
+                                            {filterOptions.sources.map(src => (
+                                                <SelectItem key={src} value={src}>{src}</SelectItem>
+                                            ))}
+                                            {/* Safety fallback in case 'None' isn't in your database yet */}
+                                            {!filterOptions.sources.includes('None') && (
+                                                <SelectItem value="None">None</SelectItem>
+                                            )}
                                         </SelectContent>
                                     </Select>
                                 </div>
@@ -227,7 +312,7 @@ export function SessionInspector({ session, onClose, onUpdate }: SessionInspecto
                         )}
                     </div>
 
-                    {isEditingNotes ? (
+                    {/* {isEditingNotes ? (
                         <div className="flex-1 flex flex-col gap-3 h-full min-h-[300px]">
                             <Textarea
                                 className="flex-1 resize-none font-mono text-sm p-4 bg-background focus-visible:ring-[#8A2BE2]"
@@ -238,7 +323,7 @@ export function SessionInspector({ session, onClose, onUpdate }: SessionInspecto
                             />
                             <div className="flex justify-end gap-2 shrink-0">
                                 <Button variant="ghost" size="sm" onClick={() => setIsEditingNotes(false)}>Cancel</Button>
-                                {/* We route this directly to handleSave to utilize the unified pipeline */}
+                                We route this directly to handleSave to utilize the unified pipeline
                                 <Button size="sm" className="bg-[#8A2BE2]" onClick={handleSave}>Save Notes</Button>
                             </div>
                         </div>
@@ -255,6 +340,47 @@ export function SessionInspector({ session, onClose, onUpdate }: SessionInspecto
                                 <SafeMarkdown content={session.notes} />
                             ) : (
                                 <p className="text-muted-foreground italic opacity-50">Click to add notes...</p>
+                            )}
+                        </div>
+                    )} */}
+
+                    {isEditingNotes ? (
+                        <div className="flex-1 flex flex-col gap-3 h-full min-h-[300px]">
+                            <Textarea
+                                className="flex-1 resize-none font-mono text-sm p-4 bg-background focus-visible:ring-[#8A2BE2]"
+                                placeholder="Write your notes in Markdown..."
+                                value={editDraft.notes ?? session.notes ?? ''}
+                                onChange={(e) => setEditDraft({ ...editDraft, notes: e.target.value })}
+                                onBlur={handleSave} // Auto-save when clicking outside
+                                autoFocus
+                                // NEW: Intercept focus and push cursor to the absolute end of the text
+                                onFocus={(e) => {
+                                    const length = e.currentTarget.value.length;
+                                    e.currentTarget.setSelectionRange(length, length);
+                                }}
+                            />
+                            <div className="flex justify-end gap-2 shrink-0">
+                                <Button variant="ghost" size="sm" onMouseDown={(e) => {
+                                    e.preventDefault();
+                                    setIsEditingNotes(false);
+                                    setEditDraft({});
+                                }}>Cancel</Button>
+                                <Button size="sm" className="bg-[#8A2BE2]" onClick={handleSave}>Save Notes</Button>
+                            </div>
+                        </div>
+                    ) : (
+                        <div
+                            className="prose prose-sm dark:prose-invert max-w-none cursor-text hover:bg-muted/30 p-2 -mx-2 rounded transition-colors"
+                            onDoubleClick={() => {
+                                setEditDraft({ ...editDraft, notes: session.notes });
+                                setIsEditingNotes(true);
+                            }}
+                            title="Double-click anywhere to edit notes"
+                        >
+                            {session.notes ? (
+                                <SafeMarkdown content={session.notes} />
+                            ) : (
+                                <p className="text-muted-foreground italic opacity-50">Double-click to add notes...</p>
                             )}
                         </div>
                     )}
