@@ -169,7 +169,7 @@ export function SessionInspector({ session, filterOptions, onClose, onUpdate }: 
                     {isEditingDetails ? (
                         <Input className="font-bold text-lg focus-visible:ring-[#8A2BE2]" defaultValue={session.title} onChange={(e) =>
                             setEditDraft({ ...editDraft, title: e.target.value })}
-                            onBlur={handleSave} // Auto-save when clicking outside
+                            // onBlur={handleSave} // Auto-save when clicking outside
                             onKeyDown={(e) => { if (e.key === 'Enter') handleSave(); }} // Auto-save on Enter
                             autoFocus
                         />

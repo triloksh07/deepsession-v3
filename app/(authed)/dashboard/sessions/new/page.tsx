@@ -19,7 +19,8 @@ import { useDashboard } from '../../_components/DashboardProvider';
 import { SafeMarkdown } from '@/components/SafeMarkdown';
 import { GroupedVirtuoso } from "react-virtuoso";
 import { toast } from 'sonner';
-import { SessionList } from "../_components/SessionList";
+// import { SessionList } from "../_components/SessionList";
+import { SessionList } from "../_components/SessionList2";
 import logger from "@/lib/utils/logger";
 import { Search, Filter, X, SlidersHorizontal, Download } from 'lucide-react'; // Make sure to add these to your lucide-react imports
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -807,11 +808,15 @@ const SessionsContent = memo(
                 </div>
 
                 {/* LEFT COLUMN: MASTER LIST (60%) */}
-                <div className="space-y-4 col-span-2">
-
+                {/* NEW: Locked height and vertical flexbox for independent scrolling */}
+                {/* <div className="col-span-2 h-[calc(90vh - 13rem)] flex flex-col gap-4 sticky top-30"> */}
+                {/* Hides on mobile if a session or batch is actively selected */}
+                <div className={`col-span-5 lg:col-span-2 h-[calc(90vh-13rem)] flex-col gap-4 sticky top-24 ${(selectedIds.size > 0 ||
+                    selectedInspectorSession) ? 'hidden lg:flex' : 'flex'
+                    }`}>
                     {/* NEW: BATCH SELECTION BANNER */}
                     {selectedIds.size > 0 && (
-                        <div className="flex items-center justify-between bg-[#8A2BE2]/10 border border-[#8A2BE2]/30 px-3 py-2 rounded-lg animate-in fade-in slide-in-from-top-1">
+                        <div className="sticky top-60 z-50 flex items-center justify-between bg-[#8A2BE2]/10 border border-[#8A2BE2]/30 px-3 py-2 rounded-lg animate-in fade-in slide-in-from-top-1">
                             <span className="text-sm text-[#8A2BE2] font-semibold tracking-tight">
                                 {selectedIds.size} session{selectedIds.size > 1 ? 's' : ''} selected
                             </span>
@@ -826,20 +831,29 @@ const SessionsContent = memo(
                         </div>
                     )}
 
-                    <SessionList
-                        displayedSessions={displayedSessions}
-                        groupCounts={groupCounts}
-                        groupDates={groupDates}
-                        flatSessions={flatSessions}
-                        selectedIds={selectedIds}
-                        debouncedSearch={debouncedSearch}
-                        selectedInspectorId={selectedInspectorSession?.id}
-                        onToggleSelection={toggleSelection}
-                        onSelectSession={setSelectedInspectorSession}
-                    />
+                    {/* LIST CONTAINER */}
+                    <div className="flex-1 min-h-200 overflow-hidden rounded-lg border bdg-card/50 shadow-sm">
+                        <SessionList
+                            displayedSessions={displayedSessions}
+                            groupCounts={groupCounts}
+                            groupDates={groupDates}
+                            flatSessions={flatSessions}
+                            selectedIds={selectedIds}
+                            debouncedSearch={debouncedSearch}
+                            selectedInspectorId={selectedInspectorSession?.id}
+                            onToggleSelection={toggleSelection}
+                            onSelectSession={setSelectedInspectorSession}
+                        />
+                    </div>
                 </div>
                 {/* RIGHT COLUMN */}
-                <div className="hidden lg:block lg:col-span-3 sticky top-24 h-[calc(100vh-8rem)]">
+                {/* <div className="hidden lg:block lg:col-span-3 sticky top-24 h-[calc(100vh-8rem)]"> */}
+                {/* RIGHT COLUMN: INSPECTOR PANEL */}
+                {/* Hides on mobile UNLESS a session or batch is actively selected */}
+                <div className={`col-span-5 lg:col-span-3 sticky top-24 h-[calc(100vh-8rem)] ${(selectedIds.size > 0 ||
+                    selectedInspectorSession) ? 'block' : 'hidden lg:block'
+                    }`}>
+
                     {selectedIds.size > 0 ? (
                         <BatchEditorPanel
                             selectedCount={selectedIds.size}
@@ -953,6 +967,7 @@ export default function SessionLog() {
             <SessionsContent onEdit={handleEditClick} onRequestDelete={handleRequestDelete} />
             {/* </Suspense> */}
 
+            {/* TODO: redundant code blocks - needs careful cleanup */}
             <Dialog open={!!editingSession} onOpenChange={(isOpen) => !isOpen && setEditingSession(null)}>
                 <DialogContent className="sm:max-w-[500px]">
                     <DialogHeader>
