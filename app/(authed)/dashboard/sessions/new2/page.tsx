@@ -587,206 +587,149 @@ const SessionsContent = memo(
         const filterKey = `${displayedSessions.length}-${debouncedSearch}-${activityFilter}-${sourceFilter}-${topicFilter}`;
 
         return (
-            // Height is handled by useWindowScroll, but we need a wrapper min-height to prevent collapse
+            // 1. THE IRON-CLAD VIEWPORT LOCK
+            // h-screen and overflow-hidden prevent the browser window from ever scrolling.
+            <div className="flex flex-col h-screen max-h-[80vh] overflow-hidden bg-background">
 
-            <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 relative items-start overflhow-hidden">
+                {/* 2. THE 3-COLUMN FLOATING HEADER */}
+                <header className="shrink-0 grid grid-cols-5 items-center px-6 py-4 border-b bg-background/95 backdrop-blur z-30">
 
-                {/* PAGE HEADER & GLOBAL ACTIONS */}
-                <div className="col-span-5 flex items-center justify-between mt-2 mb-2">
-                    <div>
-                        <h1 className="text-2xl font-bold tracking-tight">Session Log</h1>
-                        <p className="text-sm text-muted-foreground">Your complete deep work history.</p>
+                    {/* Column 1: Brand & Title */}
+                    <div className="flex flex-col col-span-1 justify-center">
+                        <h1 className="text-xl font-bold tracking-tight">Session Log</h1>
+                        <p className="text-xs text-muted-foreground">Deep work history.</p>
                     </div>
 
-                    {/* THE COLLAPSIBLE FILTER BAR */}
-                    <div className="col-span-3 bg-background/95 backdrop-blur p-4 rounded-lg border shadow-sm sticky top-24 z-200 transition-all">
-                        {/* Primary Row: Search & Toggle */}
-                        <div className="flex items-center gap-3">
-                            <div className="relative flex-1">
-                                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                                <Input
-                                    placeholder="Search titles, notes, or deep concepts..."
-                                    className="pl-9 bg-background"
-                                    value={searchInput}
-                                    onChange={(e) => setSearchInput(e.target.value)}
-                                />
-                            </div>
+                    {/* Column 2: Centered, Narrower Search & Floating Filters */}
+                    <div className="flex justify-center relative col-span-3">
+                        <div className="flex items-center w-full mafx-w-md bg-muted/30 border rounded-full p-1 focus-within:ring-1 focus-within:ring-[#8A2BE2] transition-shadow">
+                            <Search className="w-4 h-4 ml-3 text-muted-foreground shrink-0" />
+                            <Input
+                                placeholder="Search sessions..."
+                                className="border-0 bg-transparent h-8 shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
+                                value={searchInput}
+                                onChange={(e) => setSearchInput(e.target.value)}
+                            />
                             <Button
-                                variant={hasActiveFilters ? "default" : "outline"}
-                                className={hasActiveFilters ? "bg-[#8A2BE2] hover:bg-[#5D3FD3]" : ""}
+                                variant={hasActiveFilters ? "default" : "ghost"}
+                                size="sm"
+                                className={`rounded-full h-7 px-3 text-xs ${hasActiveFilters ? "bg-[#8A2BE2] hover:bg-[#5D3FD3]" : ""}`}
                                 onClick={() => setShowFilters(!showFilters)}
                             >
-                                <SlidersHorizontal className="w-4 h-4 mr-2" />
-                                Filters {hasActiveFilters && '(Active)'}
+                                <SlidersHorizontal className="w-3.5 h-3.5 mr-1.5" />
+                                Filters {hasActiveFilters && '(On)'}
                             </Button>
                         </div>
 
-                        {/* Secondary Row: The Expanded Filters */}
+                        {/* FLOATING FILTER POPOVER: Absolute positioned so it overlays the list instead of pushing it down */}
                         {showFilters && (
-                            <div className="grid grid-cols-1 md:grid-cols-5 gap-3 mt-4 pt-4 border-t animate-in slide-in-from-top-2 fade-in">
-                                <Select value={activityFilter} onValueChange={setActivityFilter}>
-                                    <SelectTrigger className="bg-background"><SelectValue placeholder="Activity" /></SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="All">All Activities</SelectItem>
-                                        {filterOptions.activities.map(act => <SelectItem key={act} value={act}>{act}</SelectItem>)}
-                                    </SelectContent>
-                                </Select>
-
-                                <Select value={sourceFilter} onValueChange={setSourceFilter}>
-                                    <SelectTrigger className="bg-background"><SelectValue placeholder="Source" /></SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="All">All Sources</SelectItem>
-                                        {filterOptions.sources.map(src => <SelectItem key={src} value={src}>{src}</SelectItem>)}
-                                    </SelectContent>
-                                </Select>
-
-                                <Select value={topicFilter} onValueChange={setTopicFilter}>
-                                    <SelectTrigger className="bg-background"><SelectValue placeholder="Topic" /></SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="All">All Topics</SelectItem>
-                                        {filterOptions.topics.map(topic => <SelectItem key={topic} value={topic}># {topic}</SelectItem>)}
-                                    </SelectContent>
-                                </Select>
-
-                                <Select value={timeRange} onValueChange={setTimeRange}>
-                                    <SelectTrigger className="bg-background"><SelectValue placeholder="Time Range" /></SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="All">All Time</SelectItem>
-                                        <SelectItem value="7d">Last 7 Days</SelectItem>
-                                        <SelectItem value="30d">Last 30 Days</SelectItem>
-                                    </SelectContent>
-                                </Select>
-
-                                {/* Date Boundary Filter */}
-                                <div className="flex items-center space-x-2 bg-background border rounded-md px-2">
-                                    <input
-                                        type="date"
-                                        value={startDate}
-                                        onChange={(e) => setStartDate(e.target.value)}
-                                        className="bg-transparent text-sm w-full outline-none"
-                                        title="Start Date"
-                                    />
-                                    <span className="text-muted-foreground text-xs">-</span>
-                                    <input
-                                        type="date"
-                                        value={endDate}
-                                        onChange={(e) => setEndDate(e.target.value)}
-                                        className="bg-transparent text-sm w-full outline-none"
-                                        title="End Date"
-                                    />
+                            <div className="absolute top-14 left-1/2 -translate-x-1/2 w-[60vw] bg-background border shadow-xl rounded-xl p-4 z-50 animate-in slide-in-from-top-2 fade-in">
+                                <div className="grid grid-cols-3 gap-3">
+                                    <Select value={activityFilter} onValueChange={setActivityFilter}>
+                                        <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="Activity" /></SelectTrigger>
+                                        <SelectContent>{filterOptions.activities.map(act => <SelectItem key={act} value={act}>{act}</SelectItem>)}</SelectContent>
+                                    </Select>
+                                    <Select value={sourceFilter} onValueChange={setSourceFilter}>
+                                        <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="Source" /></SelectTrigger>
+                                        <SelectContent>{filterOptions.sources.map(src => <SelectItem key={src} value={src}>{src}</SelectItem>)}</SelectContent>
+                                    </Select>
+                                    <Select value={topicFilter} onValueChange={setTopicFilter}>
+                                        <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="Topic" /></SelectTrigger>
+                                        <SelectContent>{filterOptions.topics.map(topic => <SelectItem key={topic} value={topic}># {topic}</SelectItem>)}</SelectContent>
+                                    </Select>
+                                </div>
+                                <div className="grid grid-cols-2 gap-3 mt-3">
+                                    <Select value={timeRange} onValueChange={setTimeRange}>
+                                        <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="Time Range" /></SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="All">All Time</SelectItem>
+                                            <SelectItem value="7d">Last 7 Days</SelectItem>
+                                            <SelectItem value="30d">Last 30 Days</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                    <div className="flex items-center space-x-2 bg-background border rounded-md px-2 h-8">
+                                        <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="bg-transparent text-xs w-full outline-none" />
+                                        <span className="text-muted-foreground text-xs">-</span>
+                                        <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="bg-transparent text-xs w-full outline-none" />
+                                    </div>
                                 </div>
                             </div>
                         )}
+                    </div>
 
-                        {/* Tertiary Row: Active Filter Summary & Clear */}
-                        {hasActiveFilters && (
-                            <div className="flex items-center justify-between mt-3 pt-3 border-t">
-                                <p className="text-xs text-muted-foreground font-mono">
-                                    Viewing {displayedSessions.length} result{displayedSessions.length !== 1 ? 's' : ''}
-                                </p>
-                                <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => {
-                                        setDebouncedSearch(''); setSearchInput(''); setActivityFilter('All'); setSourceFilter('All'); setTopicFilter('All'); setStartDate(''); setEndDate('');
-                                    }}
-                                    className="h-6 px-2 text-xs text-muted-foreground hover:text-destructive"
-                                >
-                                    <X className="mr-1 h-3 w-3" /> Clear Filters
+                    {/* Column 3: Global Actions (Export) */}
+                    <div className="flex justify-end col-span-1">
+                        <Button variant="outline" size="sm" onClick={handleCopyForAI} className="border-[#8A2BE2]/50 text-[#8A2BE2] hover:bg-[#8A2BE2]/10 h-8">
+                            <Download className="w-3.5 h-3.5 mr-2" />
+                            Export
+                        </Button>
+                    </div>
+                </header>
+
+                {/* 3. THE SPLIT PANELS ENGINE */}
+                {/* flex-1 min-h-0 is the secret here. It forces this container to exactly fill remaining space. */}
+                <div className="flex-1 min-h-0 flex flex-col col-span-5 lg:flex-row gap-6 p-2 relative box-border">
+
+                    {/* LEFT COLUMN: MASTER LIST */}
+                    {/* min-h-0 strictly limits the Virtuoso container to the height of this div */}
+                    <div className={`flex-1 min-w-0 flex-col col-span-2 min-h-0 ${selectedIds.size > 0 || selectedInspectorSession ? 'hidden lg:flex' : 'flex'}`}>
+
+                        {selectedIds.size > 0 && (
+                            <div className="shrink-0 mb-3 flex items-center justify-between bg-[#8A2BE2]/10 border border-[#8A2BE2]/30 px-3 py-2 rounded-lg">
+                                <span className="text-sm text-[#8A2BE2] font-semibold tracking-tight">{selectedIds.size} selected</span>
+                                <Button variant="ghost" size="sm" onClick={clearSelection} className="h-7 text-xs text-[#8A2BE2] hover:bg-[#8A2BE2]/20 hover:text-[#8A2BE2]">
+                                    Clear <X className="w-3 h-3 ml-1" />
                                 </Button>
                             </div>
                         )}
-                    </div>
 
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={handleCopyForAI}
-                        className="border-[#8A2BE2]/50 text-[#8A2BE2] hover:bg-[#8A2BE2]/10"
-                        title="Exports filtered sessions in TOON format"
-                    >
-                        <Download className="w-4 h-4 mr-2" />
-                        Export for AI
-                    </Button>
-                </div>
-
-                {/* LEFT COLUMN: MASTER LIST (60%) */}
-                {/* NEW: Locked height and vertical flexbox for independent scrolling */}
-                {/* <div className="col-span-2 h-[calc(90vh - 13rem)] flex flex-col gap-4 sticky top-30"> */}
-                {/* Hides on mobile if a session or batch is actively selected */}
-                <div className={`col-span-5 lg:col-span-2 h-80 hd-[calc(80vh-8rem)] flex-col gap-4 sticky top-24 ${(selectedIds.size > 0 ||
-                    selectedInspectorSession) ? 'hidden lg:flex' : 'flex'
-                    }`}>
-                    {/* NEW: BATCH SELECTION BANNER */}
-                    {selectedIds.size > 0 && (
-                        <div className="sticky top-60 z-50 flex items-center justify-between bg-[#8A2BE2]/10 border border-[#8A2BE2]/30 px-3 py-2 rounded-lg animate-in fade-in slide-in-from-top-1">
-                            <span className="text-sm text-[#8A2BE2] font-semibold tracking-tight">
-                                {selectedIds.size} session{selectedIds.size > 1 ? 's' : ''} selected
-                            </span>
-                            <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={clearSelection}
-                                className="h-7 text-xs text-[#8A2BE2] hover:bg-[#8A2BE2]/20 hover:text-[#8A2BE2]"
-                            >
-                                Clear Selection <X className="w-3 h-3 ml-1" />
-                            </Button>
+                        {/* The Virtuoso Wrapper MUST have flex-1 min-h-0 */}
+                        <div className="flex-1 min-h-0 bsg-card/50 rounded-lg border shadow-sm overflow-auto">
+                            <SessionList
+                                displayedSessions={displayedSessions}
+                                groupCounts={groupCounts}
+                                groupDates={groupDates}
+                                flatSessions={flatSessions}
+                                selectedIds={selectedIds}
+                                debouncedSearch={debouncedSearch}
+                                selectedInspectorId={selectedInspectorSession?.id}
+                                onToggleSelection={toggleSelection}
+                                onSelectSession={setSelectedInspectorSession}
+                            />
                         </div>
-                    )}
-
-                    {/* LIST CONTAINER */}
-                    <div className="flex-1 min-h-0 hf-full ovegrflow-hidden rounded-lg border bjg-card/50 shadow-sm">
-                        <SessionList
-                            displayedSessions={displayedSessions}
-                            groupCounts={groupCounts}
-                            groupDates={groupDates}
-                            flatSessions={flatSessions}
-                            selectedIds={selectedIds}
-                            debouncedSearch={debouncedSearch}
-                            selectedInspectorId={selectedInspectorSession?.id}
-                            onToggleSelection={toggleSelection}
-                            onSelectSession={setSelectedInspectorSession}
-                        />
                     </div>
-                </div>
-                {/* RIGHT COLUMN */}
-                {/* <div className="hidden lg:block lg:col-span-3 sticky top-24 h-[calc(100vh-8rem)]"> */}
-                {/* RIGHT COLUMN: INSPECTOR PANEL */}
-                {/* Hides on mobile UNLESS a session or batch is actively selected */}
-                <div className={`col-span-5 lg:col-span-3 sticky todp-24 h-[calc(90vh-10rem)] ${(selectedIds.size > 0 ||
-                    selectedInspectorSession) ? 'block' : 'hidden lg:block'
-                    }`}>
 
-                    {selectedIds.size > 0 ? (
-                        <BatchEditorPanel
-                            selectedCount={selectedIds.size}
-                            filterOptions={filterOptions}
-                            onCancel={clearSelection}
-                            onApply={(intent) => {
-                                updateMultipleSessionsTag({
-                                    ids: Array.from(selectedIds),
-                                    intent,
-                                });
-                                clearSelection();
-                            }}
-                        />
-                    ) : selectedInspectorSession ? (
-                        <SessionInspector
-                            session={selectedInspectorSession}
-                            filterOptions={filterOptions}
-                            onClose={() => setSelectedInspectorSession(null)}
-                            onUpdate={(id, updates) => {
-                                updateSession({ id, updates });
-                                setSelectedInspectorSession(prev => prev ? { ...prev, ...updates } : null);
-                            }}
-                        />
-                    ) : (
-                        // <div className="h-full border border-dashed rounded-lg flex flex-col items-center justify-center text-muted-foreground bg-muted/5">
-                        //     <FileText className="w-12 h-12 mb-4 opacity-20" />
-                        //     <p className="text-sm">Select a session to view or edit details</p>
-                        // </div>
-                        <EmptyInspectorState />
-                    )}
+                    {/* RIGHT COLUMN: INSPECTOR PANEL */}
+                    {/* Fixed width on large screens, independent scrollbar */}
+                    <div className={`w-full lg:w-[450px] xl:w-[500px] shrink-0 h-full col-span-3 overflow-y-auto custom-scrollbar rounded-lg pb-10 ${selectedIds.size > 0 || selectedInspectorSession ? 'block' : 'hidden lg:block'}`}>
+                        {selectedIds.size > 0 ? (
+                            <BatchEditorPanel
+                                selectedCount={selectedIds.size}
+                                filterOptions={filterOptions}
+                                onCancel={clearSelection}
+                                onApply={(intent) => {
+                                    updateMultipleSessionsTag({ ids: Array.from(selectedIds), intent });
+                                    clearSelection();
+                                }}
+                            />
+                        ) : selectedInspectorSession ? (
+                            <SessionInspector
+                                session={selectedInspectorSession}
+                                filterOptions={filterOptions}
+                                onClose={() => setSelectedInspectorSession(null)}
+                                onUpdate={(id, updates) => {
+                                    updateSession({ id, updates });
+                                    setSelectedInspectorSession(prev => prev ? { ...prev, ...updates } : null);
+                                }}
+                                onDelete={() => {
+                                    onRequestDelete(selectedInspectorSession);
+                                    setSelectedInspectorSession(null);
+                                }}
+                            />
+                        ) : (
+                            <EmptyInspectorState />
+                        )}
+                    </div>
                 </div>
             </div>
         );
@@ -855,7 +798,7 @@ export default function SessionLog() {
 
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-4">
             {/* <Card>
                 <CardHeader>
                     <CardTitle>Sessions</CardTitle>

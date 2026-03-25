@@ -23,8 +23,8 @@ const AutocompleteInput = ({
                 setIsOpen(false);
             }
         };
-        document.addEventListener("mousedown", handleClickOutside);
-        return () => document.removeEventListener("mousedown", handleClickOutside);
+        document.addEventListener("mouseup", handleClickOutside);
+        return () => document.removeEventListener("mouseup", handleClickOutside);
     }, []);
 
     const filteredOptions = options.filter(opt =>

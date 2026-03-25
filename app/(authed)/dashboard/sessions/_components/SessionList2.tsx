@@ -40,7 +40,7 @@ const CustomScroller = React.forwardRef<HTMLDivElement, React.HTMLProps<HTMLDivE
                 className="custom-scrollbar" // Your custom CSS scrollbar class
                 style={{
                     ...style,
-                    height: '90vh',
+                    height: '100%',
                     overflowY: 'auto',
                     overflowX: 'hidden'
                 }}
@@ -89,7 +89,7 @@ export function SessionList({
         // <div className="min-h-[500px]">
             <GroupedVirtuoso
                 key={`${displayedSessions.length}-${debouncedSearch}`}
-                className="h-full w-full"
+                className="h-[80%] w-full"
                 // useWindowScroll
                 // NEW: The precisely mounted custom scroller
                 components={{
@@ -103,7 +103,7 @@ export function SessionList({
                     const date = groupDates[index];
                     const count = groupCounts[index];
                     return (
-                        <div className="sticky tsop-24 z-20 pt-8 pb-4 bg-background/95 backdrop-blur shadow-sm border-b px-3 py-2">
+                        <div className="sticky tsop-24 z-20 pt-6 pb-4 bg-background/95 backdrop-blur shadow-sm border-b px-3 py-2">
                             <div className="flex items-center space-x-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                                 <Calendar className="h-3.5 w-3.5" />
                                 <span>{formatDate(date)}</span>
@@ -125,7 +125,7 @@ export function SessionList({
                     const activityColor = activity === 'Coding' ? 'bg-[#8A2BE2]' : 'bg-blue-500';
 
                     return (
-                        <div className="px-2 py-1">
+                        <div className="px-1 pt-2 pb-2 box-border">
                             <div
                                 className={`group flex items-stretch gap-3 p-3 rounded-md border transition-all cursor-pointer ${isSelected ? 'bg-[#8A2BE2]/5 border-[#8A2BE2]/50' :
                                     isInspected ? 'bg-muted border-border shadow-sm' :

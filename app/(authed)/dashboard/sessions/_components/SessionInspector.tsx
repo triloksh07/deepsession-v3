@@ -4,6 +4,7 @@ import { Session } from '@/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { X, Edit, Edit3 } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import AutocompleteInput from '@/app/(authed)/dashboard/_components/AutoCompleteInput';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -39,6 +40,7 @@ interface SessionInspectorProps {
     };
     onClose: () => void;
     onUpdate: (id: string, updates: Partial<Session>) => void;
+    onDelete: () => void;
 }
 
 export function SessionInspector({ session, filterOptions, onClose, onUpdate }: SessionInspectorProps) {
@@ -46,14 +48,16 @@ export function SessionInspector({ session, filterOptions, onClose, onUpdate }: 
     const [isEditingDetails, setIsEditingDetails] = useState(false);
     const [isEditingNotes, setIsEditingNotes] = useState(false);
     const [editDraft, setEditDraft] = useState<Partial<Session>>({});
-    const [topicDraft, setTopicDraft] = useState<string>("");
+    // const [topicDraft, setTopicDraft] = useState<string>("");
+    const [topicInput, setTopicInput] = useState('');
 
     // Reset drafts if the selected session changes
     useEffect(() => {
         setIsEditingDetails(false);
         setIsEditingNotes(false);
         setEditDraft({});
-        setTopicDraft("");
+        // setTopicDraft("");
+        setTopicInput('');
     }, [session.id]);
 
     // 2. THE CONSOLIDATED SAVE ENGINE
@@ -94,6 +98,40 @@ export function SessionInspector({ session, filterOptions, onClose, onUpdate }: 
     //     setTopicDraft("");
     // };
 
+    // --- TOPIC BADGE ENGINE ---
+    const currentTopics = editDraft.tags?.topic ?? session.tags?.topic ?? [];
+
+    const addTopic = (newTopic: string) => {
+        const trimmed = newTopic.trim();
+        if (!trimmed) return;
+
+        // Prevent duplicates
+        if (!currentTopics.includes(trimmed)) {
+            setEditDraft(prev => ({
+                ...prev,
+                tags: { ...(prev.tags || session.tags), topic: [...currentTopics, trimmed] }
+            }));
+        }
+        setTopicInput(''); // Clear input after adding
+    };
+
+    const removeTopic = (topicToRemove: string) => {
+        setEditDraft(prev => ({
+            ...prev,
+            tags: {
+                ...(prev.tags || session.tags),
+                topic: currentTopics.filter(t => t !== topicToRemove)
+            }
+        }));
+    };
+
+    const handleTopicKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (e.key === 'Enter' || e.key === ',') {
+            e.preventDefault(); // Prevent form submission or jumping
+            addTopic(topicInput);
+        }
+    };
+
     // 2. THE CONSOLIDATED STRICT SAVE ENGINE
     const handleSave = () => {
         const updates: Partial<Session> = {};
@@ -123,12 +161,23 @@ export function SessionInspector({ session, filterOptions, onClose, onUpdate }: 
         }
 
         // 4. Strict Topic Array Check
-        if (topicDraft !== "") {
-            const cleanTopics = topicDraft.split(',').map(t => t.trim()).filter(Boolean);
-            const currentTopics = session.tags?.topic || [];
+        // if (topicDraft !== "") {
+        //     const cleanTopics = topicDraft.split(',').map(t => t.trim()).filter(Boolean);
+        //     const currentTopics = session.tags?.topic || [];
 
-            if (JSON.stringify(cleanTopics) !== JSON.stringify(currentTopics)) {
-                updatedTags.topic = cleanTopics;
+        //     if (JSON.stringify(cleanTopics) !== JSON.stringify(currentTopics)) {
+        //         updatedTags.topic = cleanTopics;
+        //         tagsChanged = true;
+        //     }
+        // }
+
+        // 4. Strict Topic Array Check
+        const draftTopics = editDraft.tags?.topic;
+        if (draftTopics !== undefined) {
+            const currentSessionTopics = session.tags?.topic || [];
+            // Only flag for database write if the arrays are actually different
+            if (JSON.stringify(draftTopics) !== JSON.stringify(currentSessionTopics)) {
+                updatedTags.topic = draftTopics;
                 tagsChanged = true;
             }
         }
@@ -171,7 +220,7 @@ export function SessionInspector({ session, filterOptions, onClose, onUpdate }: 
                             setEditDraft({ ...editDraft, title: e.target.value })}
                             // onBlur={handleSave} // Auto-save when clicking outside
                             onKeyDown={(e) => { if (e.key === 'Enter') handleSave(); }} // Auto-save on Enter
-                            autoFocus
+                        // autoFocus
                         />
                     ) : (
                         <CardTitle className="text-xl leading-tight cursor-pointer hover:text-[#8A2BE2] transition-colors" onDoubleClick={() => {
@@ -204,7 +253,7 @@ export function SessionInspector({ session, filterOptions, onClose, onUpdate }: 
                             <>
                                 <Button variant="ghost" size="icon" onClick={() => {
                                     setIsEditingDetails(true);
-                                    setTopicDraft((session.tags?.topic || []).join(', '));
+                                    // setTopicDraft((session.tags?.topic || []).join(', '));
                                 }} title="Edit Details">
                                     <Edit className="w-4 h-4" />
                                 </Button>
@@ -231,7 +280,7 @@ export function SessionInspector({ session, filterOptions, onClose, onUpdate }: 
                         <div className="space-y-4 animate-in fade-in slide-in-from-top-2">
                             <div className="grid grid-cols-2 gap-3">
                                 {/* ACTIVITY SELECTOR */}
-                                <div className="space-y-1.5">
+                                {/* <div className="space-y-1.5">
                                     <label className="text-xs font-semibold text-muted-foreground uppercase">Activity</label>
                                     <Select value={editDraft.tags?.activity || session.tags?.activity || ''} onValueChange={(val) => setEditDraft({
                                         ...editDraft,
@@ -247,9 +296,25 @@ export function SessionInspector({ session, filterOptions, onClose, onUpdate }: 
                                             ))}
                                         </SelectContent>
                                     </Select>
-                                </div>
-                                {/* SOURCE SELECTOR */}
+                                </div> */}
+
+                                {/* ACTIVITY SELECTOR (Dynamic) */}
                                 <div className="space-y-1.5">
+                                    <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Activity</label>
+                                    <AutocompleteInput
+                                        value={editDraft.tags?.activity ?? session.tags?.activity ?? ''}
+                                        onChange={(val) => setEditDraft({
+                                            ...editDraft,
+                                            tags: { ...(editDraft.tags || session.tags), activity: val }
+                                        })}
+                                        // Inject default non-study tags alongside existing database tags
+                                        options={Array.from(new Set([...filterOptions.activities, 'Coding', 'Reading', 'Admin', 'Free Time']))}
+                                        placeholder="Select or type..."
+                                    />
+                                </div>
+
+                                {/* SOURCE SELECTOR */}
+                                {/* <div className="space-y-1.5">
                                     <label className="text-xs font-semibold text-muted-foreground uppercase">Source</label>
                                     <Select value={editDraft.tags?.source || session.tags?.source || ''} onValueChange={(val) => setEditDraft({
                                         ...editDraft,
@@ -263,17 +328,32 @@ export function SessionInspector({ session, filterOptions, onClose, onUpdate }: 
                                             {filterOptions.sources.map(src => (
                                                 <SelectItem key={src} value={src}>{src}</SelectItem>
                                             ))}
-                                            {/* Safety fallback in case 'None' isn't in your database yet */}
                                             {!filterOptions.sources.includes('None') && (
                                                 <SelectItem value="None">None</SelectItem>
                                             )}
                                         </SelectContent>
                                     </Select>
+                                </div> */}
+
+                                {/* SOURCE SELECTOR (Dynamic) */}
+                                <div className="space-y-1.5">
+                                    <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Source</label>
+                                    <AutocompleteInput
+                                        value={editDraft.tags?.source ?? session.tags?.source ?? ''}
+                                        onChange={(val) => setEditDraft({
+                                            ...editDraft,
+                                            tags: { ...(editDraft.tags || session.tags), source: val }
+                                        })}
+                                        // Inject standard defaults alongside existing database sources
+                                        options={filterOptions.sources}
+                                        placeholder="Select or type..."
+                                    // options={Array.from(new Set([...filterOptions.sources, 'Independent', 'Cohort', 'Book', 'None', '']))}
+                                    />
                                 </div>
                             </div>
 
                             {/* TOPIC INPUT (Stable) */}
-                            <div className="space-y-1.5">
+                            {/* <div className="space-y-1.5">
                                 <label className="text-xs font-semibold text-muted-foreground uppercase">Topics</label>
                                 <Input
                                     placeholder="e.g. React, Firebase, System Design..."
@@ -282,6 +362,35 @@ export function SessionInspector({ session, filterOptions, onClose, onUpdate }: 
                                     className="bg-background"
                                 />
                                 <p className="text-[10px] text-muted-foreground">Comma separated. Extracted on save.</p>
+                            </div> */}
+
+                            {/* TOPICS BADGE ZONE */}
+                            <div className="space-y-2 mt-4 pt-4 border-t border-border/50">
+                                <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Topics</label>
+
+                                {/* 1. The Visual Badges */}
+                                <div className="flex flex-wrap gap-2 py-2">
+                                    {currentTopics.map(topic => (
+                                        <div
+                                            key={topic}
+                                            onClick={() => removeTopic(topic)}
+                                            className="flex items-center gap-1 px-2.5 py-1 text-xs font-medium bg-[#8A2BE2]/10 text-[#8A2BE2] rounded-md cursor-pointer hover:bg-destructive/10 hover:text-destructive transition-colors group"
+                                            title="Click to remove"
+                                        >
+                                            {topic}
+                                            <X className="w-3 h-3 opacity-50 group-hover:opacity-100" />
+                                        </div>
+                                    ))}
+                                </div>
+
+                                {/* 2. The Input Field */}
+                                <Input
+                                    placeholder={currentTopics.length === 0 ? "Type a topic and press Enter..." : "Add another topic..."}
+                                    value={topicInput}
+                                    onChange={(e) => setTopicInput(e.target.value)}
+                                    onKeyDown={handleTopicKeyDown}
+                                    className="bg-background text-sm h-9"
+                                />
                             </div>
                         </div>
                     ) : (

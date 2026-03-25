@@ -76,7 +76,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   if (!user) return null;
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-[80vh] bg-background">
       {/* Navbar renders immediately (client) as part of the protected shell */}
       {/* <Navbar /> */}
 
