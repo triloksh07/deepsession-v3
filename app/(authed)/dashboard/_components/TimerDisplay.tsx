@@ -54,7 +54,7 @@ export function TimerDisplay({
           <div className={cn(
             "flex-item font-mono font-bold leading-none tracking-tighter tabular-nums z-10 transition-colors duration-300",
             "text-4xl",
-            isOnBreak ? "text-blue-500" : "text-red-600"
+            isOnBreak ? "text-gray-400" : "text-[#1e90ff]"
           )}>
             {formatTime(displayMs)}
           </div>
