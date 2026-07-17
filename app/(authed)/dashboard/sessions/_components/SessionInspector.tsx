@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Session } from '@/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { X, Edit, Edit3 } from 'lucide-react';
+import { X, Edit, Edit3, Trash2 } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import AutocompleteInput from '@/app/(authed)/dashboard/_components/AutoCompleteInput';
 import { Badge } from '@/components/ui/badge';
@@ -40,7 +40,7 @@ interface SessionInspectorProps {
     };
     onClose: () => void;
     onUpdate: (id: string, updates: Partial<Session>) => void;
-    onDelete: () => void;
+    // onDelete: () => void;
 }
 
 export function SessionInspector({ session, filterOptions, onClose, onUpdate }: SessionInspectorProps) {
@@ -138,7 +138,7 @@ export function SessionInspector({ session, filterOptions, onClose, onUpdate }: 
         let tagsChanged = false;
 
         // Ensure we don't crash if session.tags is undefined on older data
-        let updatedTags = { ...(session.tags || {}) };
+        const updatedTags = { ...(session.tags || {}) };
 
         // 1. Strict Title Check (Only update if defined AND different)
         if (editDraft.title !== undefined && editDraft.title !== session.title) {
@@ -201,8 +201,11 @@ export function SessionInspector({ session, filterOptions, onClose, onUpdate }: 
         <Card className="h-full flex flex-col overflow-hidden border-border/50 shadow-md transition-all">
 
             {/* HEADER (Title & Meta) */}
-            <CardHeader className="bg-muted/30 border-b pb-4 shrink-0">
-                <div className="flex items-start justify-between gap-4">
+            <div
+                // className="bg-muted/30 border-b pb-4 shrink-0"
+                className="p-5 border-b bg-card rounded-t-lg"
+            >
+                <div className="flex items-start justify-between gap-4 mb-4">
                     {/* {isEditingDetails ? (
                         <Input
                             className="font-bold text-lg"
@@ -215,26 +218,31 @@ export function SessionInspector({ session, filterOptions, onClose, onUpdate }: 
                             {session.title || 'Untitled Session'}
                         </CardTitle>
                     )} */}
-                    {isEditingDetails ? (
-                        <Input className="font-bold text-lg focus-visible:ring-[#8A2BE2]" defaultValue={session.title} onChange={(e) =>
-                            setEditDraft({ ...editDraft, title: e.target.value })}
-                            // onBlur={handleSave} // Auto-save when clicking outside
-                            onKeyDown={(e) => { if (e.key === 'Enter') handleSave(); }} // Auto-save on Enter
-                        // autoFocus
-                        />
-                    ) : (
-                        <CardTitle className="text-xl leading-tight cursor-pointer hover:text-[#8A2BE2] transition-colors" onDoubleClick={() => {
-                            setEditDraft({ ...editDraft, title: session.title });
-                            setIsEditingDetails(true);
-                        }}
-                            title="Double-click to edit title"
-                        >
-                            {session.title || 'Untitled Session'}
-                        </CardTitle>
-                    )}
+                    <div className="flex-1">
+                        {isEditingDetails ? (
+                            <Input className="font-bold text-lg focus-visible:ring-[#892be2cb]"
+                                defaultValue={session.title}
+                                onChange={(e) =>
+                                    setEditDraft({ ...editDraft, title: e.target.value })}
+                                // onBlur={handleSave} // Auto-save when clicking outside
+                                onKeyDown={(e) => { if (e.key === 'Enter') handleSave(); }} // Auto-save on Enter
+                            // autoFocus
+                            />
+                        ) : (
+                            <h2 className="text-xl leading-tight cursor-pointer hover:text-[#8A2BE2] transition-colors"
+                                onDoubleClick={() => {
+                                    setEditDraft({ ...editDraft, title: session.title });
+                                    setIsEditingDetails(true);
+                                }}
+                                title="Double-click to edit title"
+                            >
+                                {session.title || 'Untitled Session'}
+                            </h2>
+                        )}
+                    </div>
 
                     {/* Action Buttons */}
-                    <div className="flex gap-1 shrink-0">
+                    <div className="hidden flex gap-1 shrink-0">
                         {isEditingDetails ? (
                             <>
                                 {/* <Button variant="ghost" size="sm" onClick={() => setIsEditingDetails(false)}>Cancel</Button> */}
@@ -263,24 +271,48 @@ export function SessionInspector({ session, filterOptions, onClose, onUpdate }: 
                             </>
                         )}
                     </div>
+
+                    {/* Action Buttons with Delete */}
+                    <div className="flex gap-1.5 shrink-0">
+                        {isEditingDetails ? (
+                            <>
+                                <Button variant="ghost" size="sm" onMouseDown={(e) => { e.preventDefault(); setIsEditingDetails(false); setEditDraft({}); }} className="transition-all hover:bg-muted">Cancel</Button>
+                                <Button size="sm" className="bg-[#8A2BE2] hover:bg-[#7122ba] text-white transition-all" onClick={handleSave}>Save</Button>
+                            </>
+                        ) : (
+                            <>
+                                {/* FIX 5: Delete Button added seamlessly */}
+                                <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10" onClick={() => {console.log("No delete called for safety")}}>
+                                    <Trash2 className="w-4 h-4" />
+                                </Button>
+                                <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => setIsEditingDetails(true)}><Edit3 className="w-4 h-4" /></Button>
+                                <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={onClose}><X className="w-4 h-4" /></Button>
+                            </>
+                        )}
+                    </div>
+
+                    {/* FIX 4: Taxonomy moved to header */}
+                    <div className="flex flex-wrap gap-2">
+                        {/* Move your Activity, Source, and Topic Badge rendering here */}
+
+                    </div>
+
                 </div>
+
                 <div className="flex items-center gap-3 text-sm text-muted-foreground mt-2 font-mono">
                     <span>{formatDate(session.date)}</span>
                     <span>•</span>
                     <span>{formatTime(session.sessionTime)} Focus</span>
                 </div>
-            </CardHeader>
+            </div>
 
-            {/* BODY (Scrollable) */}
-            <CardContent className="flex-1 overflow-y-auto p-0 flex flex-col">
-
-                {/* TAXONOMY ZONE */}
-                <div className="p-4 border-b bg-muted/10">
-                    {isEditingDetails ? (
-                        <div className="space-y-4 animate-in fade-in slide-in-from-top-2">
-                            <div className="grid grid-cols-2 gap-3">
-                                {/* ACTIVITY SELECTOR */}
-                                {/* <div className="space-y-1.5">
+            {/* TAXONOMY ZONE */}
+            <div className="p-4 border-b bg-muted/10">
+                {isEditingDetails ? (
+                    <div className="space-y-4 animate-in fade-in slide-in-from-top-2">
+                        <div className="grid grid-cols-2 gap-3">
+                            {/* ACTIVITY SELECTOR */}
+                            {/* <div className="space-y-1.5">
                                     <label className="text-xs font-semibold text-muted-foreground uppercase">Activity</label>
                                     <Select value={editDraft.tags?.activity || session.tags?.activity || ''} onValueChange={(val) => setEditDraft({
                                         ...editDraft,
@@ -298,23 +330,23 @@ export function SessionInspector({ session, filterOptions, onClose, onUpdate }: 
                                     </Select>
                                 </div> */}
 
-                                {/* ACTIVITY SELECTOR (Dynamic) */}
-                                <div className="space-y-1.5">
-                                    <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Activity</label>
-                                    <AutocompleteInput
-                                        value={editDraft.tags?.activity ?? session.tags?.activity ?? ''}
-                                        onChange={(val) => setEditDraft({
-                                            ...editDraft,
-                                            tags: { ...(editDraft.tags || session.tags), activity: val }
-                                        })}
-                                        // Inject default non-study tags alongside existing database tags
-                                        options={Array.from(new Set([...filterOptions.activities, 'Coding', 'Reading', 'Admin', 'Free Time']))}
-                                        placeholder="Select or type..."
-                                    />
-                                </div>
+                            {/* ACTIVITY SELECTOR (Dynamic) */}
+                            <div className="space-y-1.5">
+                                <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Activity</label>
+                                <AutocompleteInput
+                                    value={editDraft.tags?.activity ?? session.tags?.activity ?? ''}
+                                    onChange={(val) => setEditDraft({
+                                        ...editDraft,
+                                        tags: { ...(editDraft.tags || session.tags), activity: val }
+                                    })}
+                                    // Inject default non-study tags alongside existing database tags
+                                    options={Array.from(new Set([...filterOptions.activities, 'Coding', 'Reading', 'Admin', 'Free Time']))}
+                                    placeholder="Select or type..."
+                                />
+                            </div>
 
-                                {/* SOURCE SELECTOR */}
-                                {/* <div className="space-y-1.5">
+                            {/* SOURCE SELECTOR */}
+                            {/* <div className="space-y-1.5">
                                     <label className="text-xs font-semibold text-muted-foreground uppercase">Source</label>
                                     <Select value={editDraft.tags?.source || session.tags?.source || ''} onValueChange={(val) => setEditDraft({
                                         ...editDraft,
@@ -335,25 +367,25 @@ export function SessionInspector({ session, filterOptions, onClose, onUpdate }: 
                                     </Select>
                                 </div> */}
 
-                                {/* SOURCE SELECTOR (Dynamic) */}
-                                <div className="space-y-1.5">
-                                    <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Source</label>
-                                    <AutocompleteInput
-                                        value={editDraft.tags?.source ?? session.tags?.source ?? ''}
-                                        onChange={(val) => setEditDraft({
-                                            ...editDraft,
-                                            tags: { ...(editDraft.tags || session.tags), source: val }
-                                        })}
-                                        // Inject standard defaults alongside existing database sources
-                                        options={filterOptions.sources}
-                                        placeholder="Select or type..."
-                                    // options={Array.from(new Set([...filterOptions.sources, 'Independent', 'Cohort', 'Book', 'None', '']))}
-                                    />
-                                </div>
+                            {/* SOURCE SELECTOR (Dynamic) */}
+                            <div className="space-y-1.5">
+                                <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Source</label>
+                                <AutocompleteInput
+                                    value={editDraft.tags?.source ?? session.tags?.source ?? ''}
+                                    onChange={(val) => setEditDraft({
+                                        ...editDraft,
+                                        tags: { ...(editDraft.tags || session.tags), source: val }
+                                    })}
+                                    // Inject standard defaults alongside existing database sources
+                                    options={filterOptions.sources}
+                                    placeholder="Select or type..."
+                                // options={Array.from(new Set([...filterOptions.sources, 'Independent', 'Cohort', 'Book', 'None', '']))}
+                                />
                             </div>
+                        </div>
 
-                            {/* TOPIC INPUT (Stable) */}
-                            {/* <div className="space-y-1.5">
+                        {/* TOPIC INPUT (Stable) */}
+                        {/* <div className="space-y-1.5">
                                 <label className="text-xs font-semibold text-muted-foreground uppercase">Topics</label>
                                 <Input
                                     placeholder="e.g. React, Firebase, System Design..."
@@ -364,48 +396,53 @@ export function SessionInspector({ session, filterOptions, onClose, onUpdate }: 
                                 <p className="text-[10px] text-muted-foreground">Comma separated. Extracted on save.</p>
                             </div> */}
 
-                            {/* TOPICS BADGE ZONE */}
-                            <div className="space-y-2 mt-4 pt-4 border-t border-border/50">
-                                <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Topics</label>
+                        {/* TOPICS BADGE ZONE */}
+                        <div className="space-y-2 mt-4 pt-4 border-t border-border/50">
+                            <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Topics</label>
 
-                                {/* 1. The Visual Badges */}
-                                <div className="flex flex-wrap gap-2 py-2">
-                                    {currentTopics.map(topic => (
-                                        <div
-                                            key={topic}
-                                            onClick={() => removeTopic(topic)}
-                                            className="flex items-center gap-1 px-2.5 py-1 text-xs font-medium bg-[#8A2BE2]/10 text-[#8A2BE2] rounded-md cursor-pointer hover:bg-destructive/10 hover:text-destructive transition-colors group"
-                                            title="Click to remove"
-                                        >
-                                            {topic}
-                                            <X className="w-3 h-3 opacity-50 group-hover:opacity-100" />
-                                        </div>
-                                    ))}
-                                </div>
-
-                                {/* 2. The Input Field */}
-                                <Input
-                                    placeholder={currentTopics.length === 0 ? "Type a topic and press Enter..." : "Add another topic..."}
-                                    value={topicInput}
-                                    onChange={(e) => setTopicInput(e.target.value)}
-                                    onKeyDown={handleTopicKeyDown}
-                                    className="bg-background text-sm h-9"
-                                />
+                            {/* 1. The Visual Badges */}
+                            <div className="flex flex-wrap gap-2 py-2">
+                                {currentTopics.map(topic => (
+                                    <div
+                                        key={topic}
+                                        onClick={() => removeTopic(topic)}
+                                        className="flex items-center gap-1 px-2.5 py-1 text-xs font-medium bg-[#8A2BE2]/10 text-[#8A2BE2] rounded-md cursor-pointer hover:bg-destructive/10 hover:text-destructive transition-colors group"
+                                        title="Click to remove"
+                                    >
+                                        {topic}
+                                        <X className="w-3 h-3 opacity-50 group-hover:opacity-100" />
+                                    </div>
+                                ))}
                             </div>
+
+                            {/* 2. The Input Field */}
+                            <Input
+                                placeholder={currentTopics.length === 0 ? "Type a topic and press Enter..." : "Add another topic..."}
+                                value={topicInput}
+                                onChange={(e) => setTopicInput(e.target.value)}
+                                onKeyDown={handleTopicKeyDown}
+                                className="bg-background text-sm h-9"
+                            />
                         </div>
-                    ) : (
-                        /* READ-ONLY BADGES */
-                        <div className="flex flex-wrap gap-2">
-                            <Badge className="bg-[#8A2BE2]">{session.tags?.activity || 'Other'}</Badge>
-                            {session.tags?.source && session.tags.source !== 'None' && (
-                                <Badge variant="outline">{session.tags.source}</Badge>
-                            )}
-                            {(session.tags?.topic || []).map((t: string, i: number) => (
-                                <Badge key={i} variant="secondary">#{t}</Badge>
-                            ))}
-                        </div>
-                    )}
-                </div>
+                    </div>
+                ) : (
+                    /* READ-ONLY BADGES */
+                    <div className="flex flex-wrap gap-2">
+                        <Badge className="bg-[#8A2BE2]">{session.tags?.activity || 'Other'}</Badge>
+                        {session.tags?.source && session.tags.source !== 'None' && (
+                            <Badge variant="outline">{session.tags.source}</Badge>
+                        )}
+                        {(session.tags?.topic || []).map((t: string, i: number) => (
+                            <Badge key={i} variant="secondary">#{t}</Badge>
+                        ))}
+                    </div>
+                )}
+            </div>
+
+            {/* BODY (Scrollable) */}
+            <CardContent className="flex-1 overflow-y-auto p-0 flex flex-col">
+
+
 
                 {/* NOTES ZONE (The Seamless Toggle) */}
                 <div className="p-6 flex-1 flex flex-col">
@@ -456,7 +493,7 @@ export function SessionInspector({ session, filterOptions, onClose, onUpdate }: 
                     {isEditingNotes ? (
                         <div className="flex-1 flex flex-col gap-3 h-full min-h-[300px]">
                             <Textarea
-                                className="flex-1 resize-none font-mono text-sm p-4 bg-background focus-visible:ring-[#8A2BE2]"
+                                className="flex-1 resize-none font-mono text-lg p-4 bg-background focus-visible:ring-[#8A2BE2]"
                                 placeholder="Write your notes in Markdown..."
                                 value={editDraft.notes ?? session.notes ?? ''}
                                 onChange={(e) => setEditDraft({ ...editDraft, notes: e.target.value })}
@@ -479,7 +516,7 @@ export function SessionInspector({ session, filterOptions, onClose, onUpdate }: 
                         </div>
                     ) : (
                         <div
-                            className="prose prose-sm dark:prose-invert max-w-none cursor-text hover:bg-muted/30 p-2 -mx-2 rounded transition-colors"
+                            className="prose prose-base dark:prose-invert max-w-none cursor-text hover:bg-muted/30 p-2 -mx-2 rounded transition-colors"
                             onDoubleClick={() => {
                                 setEditDraft({ ...editDraft, notes: session.notes });
                                 setIsEditingNotes(true);

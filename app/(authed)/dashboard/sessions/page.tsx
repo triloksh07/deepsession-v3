@@ -1,31 +1,16 @@
 'use client';
 
-import React, { Suspense, useEffect, useState, useCallback, memo, useMemo } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import React, { Suspense, useEffect, useState, useCallback, memo, useMemo, startTransition } from 'react';
+import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Clock, Calendar, FileText, Edit, Trash2 } from 'lucide-react';
+import { Clock, Calendar, FileText, Edit, Trash2, Layers, Edit3 } from 'lucide-react';
 // import type { Session, ActivityType, SourceType } from '@/types';
 import type { Session } from '@/types';
+import { UpdateSessionInput } from "@/hooks/CRUD/useSessionMutations";
 // import { DEFAULT_SESSION_TYPES } from '@/config/sessionTypes.config';
 import { useUpdateSession, useDeleteSession, useBatchUpdateSession, BatchUpdateIntent } from '@/hooks/CRUD/useSessionMutations';
-import {
-    AlertDialog,
-    AlertDialogAction,
-    AlertDialogCancel,
-    AlertDialogContent,
-    AlertDialogDescription,
-    AlertDialogFooter,
-    AlertDialogHeader,
-    AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-} from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, } from "@/components/ui/alert-dialog";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, } from "@/components/ui/dialog";
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -34,14 +19,17 @@ import { useDashboard } from '../_components/DashboardProvider';
 import { SafeMarkdown } from '@/components/SafeMarkdown';
 import { GroupedVirtuoso } from "react-virtuoso";
 import { toast } from 'sonner';
-
+import { SessionList } from "./_components/SessionList";
 import logger from "@/lib/utils/logger";
-
-import { Search, Filter, X } from 'lucide-react'; // Make sure to add these to your lucide-react imports
+import { Search, Filter, X, SlidersHorizontal, Download } from 'lucide-react'; // Make sure to add these to your lucide-react imports
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 import HighlightMatch from '@/app/(authed)/dashboard/_components/HighlightMatch';
 import AutocompleteInput from '@/app/(authed)/dashboard/_components/AutoCompleteInput';
+
+import { SessionInspector } from "./_components/SessionInspector";
+import { BatchEditorPanel } from "./_components/BatchInspector";
+import { EmptyInspectorState } from "./_components/EmptyInspector";
 
 // const sessionTypeMap = new Map<string, { label: string; color: string }>(
 //   DEFAULT_SESSION_TYPES.map((type) => [type.id, { label: type.label, color: type.color }])
@@ -72,43 +60,7 @@ const SessionsContent = memo(
         }) {
         const { sessions: sessionList, isLoading, userId } = useDashboard();
         const { mutate: updateMultipleSessionsTag, isPending: isBulkUpdatePending } = useBatchUpdateSession(userId);
-
-        // const sessions = useMemo(() => {
-        //   return sessionList ?? [];
-        // }, [sessionList]);
-
-        // Memoize the flat list data structure for GroupedVirtuoso
-        // It needs: 
-        // 1. groupCounts: [2, 5, 1] (2 items in day 1, 5 in day 2...)
-        // 2. flatSessions: [s1, s2, s3...] (All sessions flattened)
-        // 3. groupDates: ['2023-10-01', '2023-09-30'...] (Headers)
-        // const { groupCounts, flatSessions, groupDates } = useMemo(() => {
-        //   const list = sessions ?? [];
-
-        //   // 1. Group
-        //   const groups = list.reduce((acc: Record<string, Session[]>, session) => {
-        //     const date = session.date;
-        //     if (!acc[date]) acc[date] = [];
-        //     acc[date].push(session);
-        //     return acc;
-        //   }, {});
-
-        //   // 2. Sort Dates
-        //   const sortedDates = Object.keys(groups).sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
-
-        //   // 3. Flatten
-        //   const counts: number[] = [];
-        //   const flat: Session[] = [];
-
-        //   sortedDates.forEach((date) => {
-        //     // Sort sessions inside the group
-        //     const sortedGroup = groups[date].sort((a, b) => b.startTime - a.startTime);
-        //     counts.push(sortedGroup.length);
-        //     flat.push(...sortedGroup);
-        //   });
-
-        //   return { groupCounts: counts, flatSessions: flat, groupDates: sortedDates };
-        // }, [sessions]);
+        const { mutate: updateSession } = useUpdateSession(userId || '');
 
         // --- FILTER STATE ---
         const [searchInput, setSearchInput] = useState(''); // Fast state for the UI
@@ -127,6 +79,8 @@ const SessionsContent = memo(
         // New State for Batching
         const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
         const [isBatchModalOpen, setIsBatchModalOpen] = useState(false);
+        const [showMobileBatchEditor, setShowMobileBatchEditor] = useState(false);
+        const [showFilters, setShowFilters] = useState(false);
 
         // Batch From State
         const [batchActivity, setBatchActivity] = useState('');
@@ -134,6 +88,13 @@ const SessionsContent = memo(
         const [batchTopics, setBatchTopics] = useState('');
 
         const [isAppendingTopics, setIsAppendingTopics] = useState(true);
+
+        // --- MASTER-DETAIL STATE ---
+        const [selectedInspectorSession, setSelectedInspectorSession] = useState<Session | null>(null);
+
+        // Temporary state to hold edits before saving
+        const [editDraft, setEditDraft] = useState<Partial<Session>>({});
+        const [topicDraft, setTopicDraft] = useState<string>(""); // NEW: Holds raw text while typing
 
         // Wipes stale data every time the modal opens
         useEffect(() => {
@@ -244,15 +205,31 @@ const SessionsContent = memo(
 
         // --- TOON DATA EXPORT ENGINE (V2) ---
         const handleCopyForAI = async () => {
-            if (displayedSessions.length === 0) return;
+            // if (displayedSessions.length === 0) return;
 
-            if (!startDate || !endDate) {
-                toast.info("No date range selected");
-                return;
+            // 1. Determine target sessions based on user intent
+            let targetSessions = [];
+            if (selectedIds.size > 0) {
+                // INTENT A: Explicit Selection (Ignores date filter checks)
+                targetSessions = flatSessions.filter(s => selectedIds.has(s.id));
+            } else {
+                // INTENT B: Global Export (Requires safety bounds)
+                if (displayedSessions.length === 0) return;
+                // if (!startDate || !endDate) {
+                //     toast.info("Select specific sessions or apply a Date Range", {
+                //         description: "This prevents accidentally exporting your entire database."
+                //     });
+                //     return;
+                // }
+                targetSessions = displayedSessions;
             }
-
+            
             // 1. Sort chronologically (oldest to newest) so S1 is the first session
-            const sortedForExport = [...displayedSessions].sort((a, b) => a.startTime - b.startTime);
+            // const sortedForExport = [...displayedSessions].sort((a, b) => a.startTime - b.startTime);
+
+            // 2. Sort chronologically (oldest to newest)
+            const sortedForExport = [...targetSessions].sort((a, b) => a.startTime - b.startTime);
+
 
             // 2. Add 'id' to the TOON Header
             const header = `sessions[${sortedForExport.length}]{id,title,date,start,end,focusMin,breakMin,activity,topics}:`;
@@ -282,6 +259,133 @@ const SessionsContent = memo(
             } catch (err) {
                 toast.error("Failed to copy to clipboard");
             }
+        };
+
+        // --- TOON DATA EXPORT ENGINE (SMART V3) ---
+        // const handleCopyForAI = async () => {
+        //     // 1. Determine target sessions based on user intent
+        //     let targetSessions = [];
+
+        //     if (selectedIds.size > 0) {
+        //         // INTENT A: Explicit Selection (Ignores date filter checks)
+        //         targetSessions = flatSessions.filter(s => selectedIds.has(s.id));
+        //     } else {
+        //         // INTENT B: Global Export (Requires safety bounds)
+        //         if (displayedSessions.length === 0) return;
+        //         if (!startDate || !endDate) {
+        //             toast.info("Select specific sessions or apply a Date Range", {
+        //                 description: "This prevents accidentally exporting your entire database."
+        //             });
+        //             return;
+        //         }
+        //         targetSessions = displayedSessions;
+        //     }
+
+        //     if (targetSessions.length === 0) return;
+
+        //     // 2. Sort chronologically (oldest to newest)
+        //     const sortedForExport = [...targetSessions].sort((a, b) => a.startTime - b.startTime);
+
+        //     // 3. Construct TOON Payload
+        //     const header = `sessions[${sortedForExport.length}]{id,title,date,start,end,focusMin,breakMin,activity,topics}:`;
+        //     const rows = sortedForExport.map((s, index) => {
+        //         const mapId = `M${index + 1}`;
+        //         const title = s.title ? `"${s.title.replace(/"/g, '""')}"` : "Untitled";
+        //         const date = s.date;
+        //         const start = new Date(s.startTime).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: false });
+        //         const end = new Date(s.endTime).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: false });
+        //         const focus = Math.floor(s.sessionTime / 60000);
+        //         const brk = Math.floor(s.breakTime / 60000);
+        //         const activity = s.tags?.activity || 'Other';
+        //         const topics = s.tags?.topic?.length ? s.tags.topic.join('|') : 'None';
+
+        //         return `  ${mapId},${title},${date},${start},${end},${focus},${brk},${activity},${topics}`;
+        //     });
+
+        //     const toonPayload = [header, ...rows].join('\n');
+
+        //     try {
+        //         await navigator.clipboard.writeText(toonPayload);
+        //         toast.success(`Copied ${sortedForExport.length} sessions for AI`, {
+        //             description: selectedIds.size > 0 ? "Exported selected sessions." : "Exported filtered date range."
+        //         });
+        //         // Optional: clearSelection(); if you want boxes to uncheck automatically
+        //     } catch (err) {
+        //         toast.error("Failed to copy to clipboard");
+        //     }
+        // };
+        // --- NEW: THE INLINE SAVE ENGINE ---
+        // const handleSaveDetails = () => {
+        //     if (!selectedInspectorSession) return;
+
+        //     // Only send the fields that actually changed
+        //     const updates: Partial<Session> = {};
+
+        //     if (editDraft.title !== undefined) updates.title = editDraft.title;
+
+        //     // If tags were modified in the draft, merge them
+        //     if (editDraft.tags) {
+        //         updates.tags = {
+        //             ...selectedInspectorSession.tags,
+        //             ...editDraft.tags
+        //         };
+        //     }
+
+        //     if (Object.keys(updates).length > 0) {
+        //         updateSession({
+        //             id: selectedInspectorSession.id,
+        //             updates
+        //         });
+
+        //         // Optimistically update the local inspector state so it feels instant
+        //         setSelectedInspectorSession(prev => prev ? { ...prev, ...updates } : null);
+        //     }
+
+        //     // Exit edit mode
+        //     setIsEditingDetails(false);
+        //     setEditDraft({});
+        // };
+        // --- THE BULLETPROOF SAVE ENGINE ---
+        const handleSaveDetails = () => {
+            if (!selectedInspectorSession) return;
+
+            const updates: Partial<Session> = {};
+
+            if (editDraft.title !== undefined) updates.title = editDraft.title;
+
+            // Reconstruct the tags payload
+            const updatedTags = { ...selectedInspectorSession.tags };
+            let tagsChanged = false;
+
+            if (editDraft.tags?.activity) {
+                updatedTags.activity = editDraft.tags.activity;
+                tagsChanged = true;
+            }
+            if (editDraft.tags?.source !== undefined) {
+                updatedTags.source = editDraft.tags.source;
+                tagsChanged = true;
+            }
+
+            // Process the raw topic string into a clean array on save
+            if (topicDraft !== "") {
+                const cleanTopics = topicDraft.split(',').map(t => t.trim()).filter(Boolean);
+                // Only update if it actually changed to prevent unnecessary writes
+                if (JSON.stringify(cleanTopics) !== JSON.stringify(updatedTags.topic)) {
+                    updatedTags.topic = cleanTopics;
+                    tagsChanged = true;
+                }
+            }
+
+            if (tagsChanged) updates.tags = updatedTags;
+
+            if (Object.keys(updates).length > 0) {
+                updateSession({ id: selectedInspectorSession.id, updates });
+                setSelectedInspectorSession(prev => prev ? { ...prev, ...updates } : null);
+            }
+
+            // setIsEditingDetails(false);
+            setEditDraft({});
+            setTopicDraft(""); // Reset
         };
 
         // ------ STATE VARIABLES FOR BATCH UPDATE END------
@@ -387,7 +491,15 @@ const SessionsContent = memo(
             sortedDates.forEach((date) => {
                 const sortedGroup = groups[date].sort((a, b) => b.startTime - a.startTime);
                 counts.push(sortedGroup.length);
+
                 flat.push(...sortedGroup);
+                // SAFE ALTERNATIVE TO flat.push(...sortedGroup)
+                // flat = flat.concat(sortedGroup);
+
+                // FIX: Prevents "Maximum call stack size exceeded" on massive datasets
+                // for (let i = 0; i < sortedGroup.length; i++) {
+                //     flat.push(sortedGroup[i]);
+                // }
             });
 
             return { groupCounts: counts, flatSessions: flat, groupDates: sortedDates };
@@ -421,7 +533,7 @@ const SessionsContent = memo(
         // If we have cached sessions (stale), show them immediately (isLoading is true, but sessions.length > 0).
         // const shouldShowSkeleton = isLoading && (!sessions || sessions.length === 0);
         const shouldShowSkeleton = isLoading && (!sessionList || sessionList.length === 0);
-        const hasActiveFilters = debouncedSearch !== '' || activityFilter !== 'All' || sourceFilter !== 'All' || topicFilter !== 'All' || startDate || endDate;
+        const hasActiveFilters = debouncedSearch !== '' || activityFilter !== 'All' || sourceFilter !== 'All' || topicFilter !== 'All' || startDate || endDate || timeRange !== 'All';
 
 
         if (shouldShowSkeleton) {
@@ -441,471 +553,221 @@ const SessionsContent = memo(
         const filterKey = `${displayedSessions.length}-${debouncedSearch}-${activityFilter}-${sourceFilter}-${topicFilter}`;
 
         return (
-            // Height is handled by useWindowScroll, but we need a wrapper min-height to prevent collapse
+            // 1. THE IRON-CLAD VIEWPORT LOCK
+            // h-screen and overflow-hidden prevent the browser window from ever scrolling.
+            <div className="flex flex-col h-[calc(100vh-10rem)] overflow-hidden bg-background">
 
-            <div className="space-y-4">
+                {/* 2. RESPONSIVE COMPACT HEADER */}
+                <header className="shrink-0 flex flex-wrap md:flex-nowrap items-center justify-between gap-y-3 gap-x-4 px-4 py-2.5 border-b bg-background/95 backdrop-blur z-30">
 
-                {/* THE FILTER BAR */}
-                <div className="bg-background/95 backdrop-blur p-4 rounded-lg border shadow-sm space-y-4 sticky top-24 z-20">
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-                        <div className="relative md:col-span-1">
-                            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                            <Input
-                                placeholder="Search title or notes..."
-                                className="pl-9"
-                                value={searchInput}
-                                onChange={(e) => setSearchInput(e.target.value)}
+
+                    {/* Brand: Order 1 (Top Left on Mobile, Left on Desktop) */}
+                    <div className="flex flex-col justify-center order-1 w-auto">
+                        <h1 className="text-lg font-bold tracking-tight leading-none">Session Log</h1>
+                    </div>
+
+                    {/* Export: Order 2 on Mobile (Top Right), Order 3 on Desktop (Right) */}
+                    <div className="flex justify-end order-2 md:order-3 w-auto">
+                        <Button variant="outline" size="sm" onClick={handleCopyForAI}
+                            className="border-[#8A2BE2]/50 text-[#8A2BE2] hover:bg-[#8A2BE2]/10 h-7 text-xs px-2.5">
+                            <Download className="w-3.5 h-3.5 mr-1.5" />
+                            Export
+                        </Button>
+                    </div>
+
+                    {/* Search: Order 3 on Mobile (Full Width Bottom), Order 2 on Desktop (Center) */}
+                    <div className="flex justify-center relative order-3 md:order-2 w-full md:flex-1 md:max-w-md">
+                        <div
+                            className="flex items-center w-full bg-muted/40 border border-border/50 rounded-md p-0.5 focus-within:ring-1 focus-within:ring-[#8A2BE2] transition-shadow">
+                            <Search className="w-3.5 h-3.5 ml-2.5 text-muted-foreground shrink-0" />
+                            <Input placeholder="Search sessions..."
+                                className="border-0 bg-transparent h-7 text-xs shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
+                                value={searchInput} onChange={(e) => setSearchInput(e.target.value)}
+                            />
+                            <Button variant={hasActiveFilters ? "default" : "ghost"} size="sm" className={`rounded h-6 px-2.5
+                text-[10px] uppercase tracking-wider ${hasActiveFilters ? "bg-[#8A2BE2] hover:bg-[#5D3FD3]"
+                                    : "text-muted-foreground"}`} onClick={() => setShowFilters(!showFilters)}
+                            >
+                                <SlidersHorizontal className="w-3 h-3 mr-1" />
+                                Filters {hasActiveFilters && '(On)'}
+                            </Button>
+                        </div>
+
+                        {/* FLOATING FILTER POPOVER: Absolute positioned so it overlays the list instead of pushing it down */}
+                        {showFilters && (
+                            <div className="absolute top-14 left-1/2 -translate-x-1/2 w-[60vw] bg-background border shadow-xl rounded-xl p-4 z-50 animate-in slide-in-from-top-2 fade-in">
+                                <div className="grid grid-cols-3 gap-3">
+                                    <Select value={activityFilter} onValueChange={setActivityFilter}>
+                                        <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="Activity" /></SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="All">All Activities</SelectItem>
+                                            {filterOptions.activities.map(act => <SelectItem key={act} value={act}>{act}</SelectItem>)}</SelectContent>
+                                    </Select>
+                                    <Select value={sourceFilter} onValueChange={setSourceFilter}>
+                                        <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="Source" /></SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="All">All Sources</SelectItem>
+                                            {filterOptions.sources.map(src => <SelectItem key={src} value={src}>{src}</SelectItem>)}
+                                        </SelectContent>
+                                    </Select>
+                                    <Select value={topicFilter} onValueChange={setTopicFilter}>
+                                        <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="Topic" /></SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="All">All Threads</SelectItem>
+                                            {filterOptions.topics.map(topic => <SelectItem key={topic} value={topic}># {topic}</SelectItem>)}</SelectContent>
+                                    </Select>
+                                </div>
+                                <div className="grid grid-cols-2 gap-3 mt-3">
+                                    <Select value={timeRange} onValueChange={setTimeRange}>
+                                        <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="Time Range" /></SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="All">All Time</SelectItem>
+                                            <SelectItem value="7d">Last 7 Days</SelectItem>
+                                            <SelectItem value="30d">Last 30 Days</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                    <div className="flex items-center space-x-2 bg-background border rounded-md px-2 h-8">
+                                        <input type="date" title="date-picker" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="bg-transparent text-xs w-full outline-none" />
+                                        <span className="text-muted-foreground text-xs">-</span>
+                                        <input type="date" title="date-picker" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="bg-transparent text-xs w-full outline-none" />
+                                    </div>
+                                    {/* <div className="flex items-center space-x-2 md:col-span-1">
+                                        <Input
+                                            type="date"
+                                            value={startDate}
+                                            onChange={(e) => setStartDate(e.target.value)}
+                                            className="text-md"
+                                            title="Start Date"
+                                        />
+                                        <span className="text-muted-foreground text-xs">-</span>
+                                        <Input
+                                            type="date"
+                                            value={endDate}
+                                            onChange={(e) => setEndDate(e.target.value)}
+                                            className="text-md"
+                                            title="End Date"
+                                        />
+                                    </div> */}
+                                </div>
+
+                                {hasActiveFilters && (
+                                    <div className="flex items-center justify-between pt-2 border-t">
+                                        <p className="text-sm text-muted-foreground">
+                                            Showing {displayedSessions.length} result{displayedSessions.length !== 1 ? 's' : ''}
+                                        </p>
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={() => {
+                                                setDebouncedSearch(''); setActivityFilter('All'); setSourceFilter('All'); setTopicFilter('All'); setStartDate(''); setEndDate('');
+                                            }}
+                                            className="h-8 text-xs text-muted-foreground hover:text-destructive"
+                                        >
+                                            <X className="mr-1 h-3 w-3" /> Clear Filters
+                                        </Button>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+                    </div>
+                </header>
+
+                {/* 3. THE SPLIT PANELS ENGINE (Max Density) */}
+                {/* w-[95%] and mx-auto forces it to be 95% of the screen. gap-3 reduces wasted space. */}
+                <div className="flex-1 min-h-0 flex flex-col lg:flex-row gap-3 p-2 md:py-3 relative box-border w-full lg:w-[95%] xl:w-[90%] mx-auto">
+
+                    {/* LEFT COLUMN: MASTER LIST */}
+                    <div className={`flex-1 min-w-0 flex-col lg:w-1/2 min-h-0 ${(selectedInspectorSession && selectedIds.size === 0) || showMobileBatchEditor ? 'hidden lg:flex' : 'flex'}`}>
+
+                        {/* DESKTOP BATCH BANNER / MOBILE FLOATING BAR */}
+                        {selectedIds.size > 0 && (
+                            <div className="lg:static fixed bottom-6 left-1/2 -translate-x-1/2 lg:translate-x-0 z-50 shrink-0 flex items-center justify-between gap-4 bg-background lg:bg-[#8A2BE2]/10 border border-[#8A2BE2]/50 px-3 py-2 rounded-lg shadow-2xl lg:shadow-none">
+                                <span className="text-sm bg-[#8A2BE2]/10 text-[#8A2BE2] px-3 py-1 rounded-full tracking-tight">{selectedIds.size} sessions selected</span>
+                                <div className="flex gap-4">
+                                    <Button variant="ghost" size="sm" onClick={clearSelection} className="h-6 text-muted-foreground hover:text-destructive px-2">
+                                        Cancel <X className="w-3 h-3 ml-1" />
+                                    </Button>
+                                    <Button size="sm" onClick={() => setShowMobileBatchEditor(true)} className="h-6 lg:hidden bg-[#8A2BE2] text-white px-2">
+                                        Edit <Edit3 className="w-3 h-3 ml-1" />
+                                    </Button>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* FLOATING BATCH ACTION BAR */}
+                        {selectedIds.size > 0 && (
+                            // <div className="lg:static fixed shrink-0 bottom-6 left-1/2 -translate-x-1/2 z-50 bg-background border shadow-lg rounded-full px-6 py-3 flex items-center gap-4 animate-in slide-in-from-bottom-5">
+                            <div className="hidden lg:static fixed shrink-0 bottom-6 left-1/2 -translate-x-1/2 z-50 bg-background border shadow-lg rounded-full px-6 py-3 flex items-center gap-4 animate-in slide-in-from-bottom-5">
+                                <span className="text-sm font-medium bg-[#8A2BE2]/10 text-[#8A2BE2] px-3 py-1 rounded-full">
+                                    {selectedIds.size} selected
+                                </span>
+                                <Button variant="ghost" size="sm" onClick={clearSelection}>
+                                    Cancel
+                                </Button>
+
+                                <Button size="sm" className="bg-[#8A2BE2] hover:bg-[#5D3FD3]" onClick={() => setIsBatchModalOpen(true)}>
+                                    Edit <Edit3 className="w-3 h-3 ml-1" />
+                                </Button>
+                            </div>
+                        )}
+
+                        <div className="flex-1 min-h-0 rounded-md border border-border/50 shadow-sm overflow-hidden bg-card/50">
+                            {/* ... YOUR SESSION LIST COMPONENT ... */}
+                            <SessionList
+                                displayedSessions={displayedSessions}
+                                groupCounts={groupCounts}
+                                groupDates={groupDates}
+                                flatSessions={flatSessions}
+                                selectedIds={selectedIds}
+                                debouncedSearch={debouncedSearch}
+                                selectedInspectorId={selectedInspectorSession?.id}
+                                onToggleSelection={toggleSelection}
+                                onSelectSession={(session) => {
+                                    startTransition(() => {
+                                        setSelectedInspectorSession(session);
+                                    });
+                                }}
                             />
                         </div>
-
-                        <Select value={activityFilter} onValueChange={setActivityFilter}>
-                            <SelectTrigger><SelectValue placeholder="Activity" /></SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="All">All Activities</SelectItem>
-                                {filterOptions.activities.map(act => <SelectItem key={act} value={act}>{act}</SelectItem>)}
-                            </SelectContent>
-                        </Select>
-
-                        <Select value={sourceFilter} onValueChange={setSourceFilter}>
-                            <SelectTrigger><SelectValue placeholder="Source" /></SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="All">All Sources</SelectItem>
-                                {filterOptions.sources.map(src => <SelectItem key={src} value={src}>{src}</SelectItem>)}
-                            </SelectContent>
-                        </Select>
-
-                        <Select value={topicFilter} onValueChange={setTopicFilter}>
-                            <SelectTrigger><SelectValue placeholder="Thread / Topic" /></SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="All">All Threads</SelectItem>
-                                {filterOptions.topics.map(topic => <SelectItem key={topic} value={topic}># {topic}</SelectItem>)}
-                            </SelectContent>
-                        </Select>
-
-                        {/* NEW: TIME RANGE SELECTOR */}
-                        <Select value={timeRange} onValueChange={setTimeRange}>
-                            <SelectTrigger><SelectValue placeholder="Time Range" /></SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="All">All Time</SelectItem>
-                                <SelectItem value="7d">Last 7 Days</SelectItem>
-                                <SelectItem value="30d">Last 30 Days</SelectItem>
-                            </SelectContent>
-                        </Select>
                     </div>
 
-                    {/* NEW: CUSTOM DATE RANGE PICKER */}
-                    <div className="flex items-center space-x-2 md:col-span-1">
-                        <Input
-                            type="date"
-                            value={startDate}
-                            onChange={(e) => setStartDate(e.target.value)}
-                            className="text-lg"
-                            title="Start Date"
-                        />
-                        <span className="text-muted-foreground text-xs">-</span>
-                        <Input
-                            type="date"
-                            value={endDate}
-                            onChange={(e) => setEndDate(e.target.value)}
-                            className="text-lg"
-                            title="End Date"
-                        />
-                    </div>
-
-                    {hasActiveFilters && (
-                        <div className="flex items-center justify-between pt-2 border-t">
-                            <p className="text-sm text-muted-foreground">
-                                Showing {displayedSessions.length} result{displayedSessions.length !== 1 ? 's' : ''}
-                            </p>
-                            <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => {
-                                    setDebouncedSearch(''); setActivityFilter('All'); setSourceFilter('All'); setTopicFilter('All'); setStartDate(''); setEndDate('');
-                                }}
-                                className="h-8 text-xs text-muted-foreground hover:text-foreground"
-                            >
-                                <X className="mr-1 h-3 w-3" /> Clear Filters
-                            </Button>
-                        </div>
-                    )}
-
-
-                    {timeRange && (
-                        <div className="flex justify-between items-center mb-2">
-                            <h2 className="text-sm font-semibold text-muted-foreground">Time Range Filters</h2>
-                            {/* NEW: ONE-CLICK EXPORT BUTTON */}
-                            <Button variant="outline" size="sm" onClick={handleCopyForAI} className="border-[#8A2BE2]/50 text-[#8A2BE2] hover:bg-[#8A2BE2]/10 h-8">
-                                <FileText className="w-4 h-4 mr-2" />
-                                Export Filtered to AI
-                            </Button>
-                        </div>
-                    )}
-                </div>
-
-                {/* THE VIRTUALIZED LIST */}
-                {displayedSessions.length === 0 ? (
-                    <div className="text-center py-12 text-muted-foreground border rounded-lg bg-muted/20">
-                        <Filter className="mx-auto h-8 w-8 mb-3 opacity-30" />
-                        <p>No sessions match your filters.</p>
-                    </div>
-                ) : (<div className="min-h-[500px]">
-                    <GroupedVirtuoso
-                        key={filterKey} // <--- ADD THIS LINE
-                        useWindowScroll
-                        overscan={500}
-                        groupCounts={groupCounts}
-
-                        // Renders the Date Header
-                        groupContent={(index) => {
-                            const date = groupDates[index];
-                            const count = groupCounts[index];
-                            return (
-
-                                // 1. STICKY OFFSET: 'top-14' (3.5rem) accounts for main Dashboard Navbar. 
-                                //    Adjust this value (e.g. top-16, top-0) based on your actual nav height.
-                                // 2. Z-INDEX: 'z-20' ensures it stays above the session cards (usually z-0 or z-10).
-                                // 3. SOLID BG: Removed backdrop-blur in favor of solid background to prevent "bleed through".
-
-                                <div className="sticky z-20 pt-16 pb-2 bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/60 shadow-sm">
-                                    {/* Inner Container for alignment */}
-                                    <div className="flex items-center space-x-2 text-muted-foreground pt-2 pb-0">
-                                        <Calendar className="h-4 w-4" />
-                                        <span>{formatDate(date)}</span>
-                                        <span className="text-xs bg-muted px-2 py-0.5 rounded-full">({count} session{count !== 1 ? 's' : ''})</span>
-                                    </div>
-                                </div>
-                            );
-                        }}
-
-                        // Renders the Session Card
-                        itemContent={(index) => {
-                            const session = flatSessions[index];
-                            const isSelected = selectedIds.has(session.id);
-
-                            // const typeInfo = getSessionTypeInfo(session.type);
-                            // --- FALLBACK LOGIC FOR LEGACY DATA ---
-                            // If it's an old session, it won't have `session.tags`. We map the old `type` to `activity`.
-                            const activity = session.tags?.activity || 'Other';
-                            const source = session.tags?.source;
-                            const topics = session.tags?.topic || [];
-
-                            return (
-                                <div className="pb-3"> {/* Spacing between cards */}
-                                    <div className="pt-4">
-                                        <Input
-                                            placeholder="Checkbox for bulk selection"
-                                            type="checkbox"
-                                            className="w-5 h-5 cursor-pointer accent-[#8A2BE2]"
-                                            checked={isSelected}
-                                            onChange={() => toggleSelection(session.id)}
-                                        />
-                                    </div>
-                                    <Card className={`flex-1 transition-shadow hover:shadow-md ${isSelected ? 'ring-2 ring-[#8A2BE2]/50' : ''}`}>
-                                        <CardContent className="p-4 grid grid-cols-2 gap-2">
-                                            <div className="col-span-2 flex items-start justify-between mb-3">
-                                                <div className="flex justify-center items-center space-x-3">
-                                                    <div className="flex-1">
-                                                        <h3 className="font-medium mb-1">
-                                                            <HighlightMatch text={session.title || 'Untitled Session'} highlight={debouncedSearch} />
-                                                        </h3>
-                                                        <div className="flex items-center space-x-2 text-muted-foreground">
-                                                            <span>{formatDateTime(session.startTime)} - {formatDateTime(session.endTime)}</span>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-
-                                            <div className="col-span-2 flex items-center justify-start space-x-4 mb-3 text-muted-foreground">
-                                                <div className="flex items-center space-x-1">
-                                                    <Clock className="h-4 w-4" />
-                                                    <span>Focus: {formatTime(session.sessionTime)}</span>
-                                                </div>
-                                                {session.breakTime > 0 && (
-                                                    <div className="flex items-center space-x-1">
-                                                        <Clock className="h-4 w-4" />
-                                                        <span>Break: {formatTime(session.breakTime)}</span>
-                                                    </div>
-                                                )}
-                                            </div>
-
-                                            {/* NOTES BLOCK */}
-                                            {session.notes && (
-                                                <div className="col-span-2 mt-2 p-3 bg-muted/50 rounded-md text-lg border border-border/50">
-                                                    {debouncedSearch.trim() !== '' ? (
-                                                        // SEARCH MODE: Prioritize finding the exact match
-                                                        <div className="whitespace-pre-wrap font-mono text-lg">
-                                                            <HighlightMatch text={session.notes} highlight={debouncedSearch} />
-                                                        </div>
-                                                    ) : (
-                                                        // READ MODE: Prioritize the beautiful Markdown formatting
-                                                        <div className="prose prose-lg dark:prose-invert max-w-none">
-                                                            {/* <SafeMarkdown content={session.notes} /> */}
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            )}
-
-                                            {/* {session.notes && (
-                                                <div className="col-span-2 flex items-start space-x-2 mt-2 p-3 border border-border/50 rounded-md bg-muted/50">
-                                                    <FileText className="h-4 w-4 mt-1 shrink-0" />
-                                                    <div className="whitespace-pre-wrap font-mono text-lg flex-1 overflow-auto">
-                                                        <HighlightMatch text={session.notes} highlight={debouncedSearch} />
-                                                    </div>
-                                                </div>
-                                            )} */}
-
-                                            {/* --- NEW HYBRID TAG RENDERING --- */}
-                                            <div className="col-span-2 relative flex items-center justify-between mt-4 border-t pt-4">
-                                                <div className="flex flex-wrap gap-2">
-                                                    {/* Y-Axis: The Constraints */}
-                                                    <Badge variant="default" className="bg-[#8A2BE2] hover:bg-[#5D3FD3]">
-                                                        {activity}
-                                                    </Badge>
-
-                                                    {source && (
-                                                        <Badge variant="outline" className="text-muted-foreground border-muted-foreground/30">
-                                                            {source}
-                                                        </Badge>
-                                                    )}
-
-                                                    {/* X-Axis: The Threads */}
-                                                    {topics.map((topicStr, i) => (
-                                                        <Badge key={i} variant="secondary" className="bg-muted">
-                                                            # {topicStr}
-                                                        </Badge>
-                                                    ))}
-                                                </div>
-
-                                                <div className="flex items-center justify-center space-x-2">
-                                                    <Button variant="destructive" className="p-1 h-8 w-8" onClick={() => onRequestDelete(session)}>
-                                                        <Trash2 size={16} />
-                                                    </Button>
-                                                    <Button onClick={() => onEdit(session)} className="p-1 h-8 w-8" variant="ghost">
-                                                        <Edit size={16} />
-                                                    </Button>
-                                                </div>
-                                            </div>
-
-                                            {/* Old */}
-                                            {/* <div className="col-span-2 relative flex items-center justify-between mt-4">
-                          <Badge variant="default" className="capitalize" style={{ backgroundColor: typeInfo.color }}>
-                            {typeInfo.label}
-                          </Badge>
-                          <div className="flex items-center justify-center space-x-2">
-                            <Button variant="destructive" className="p-1 h-8 w-8" onClick={() => onRequestDelete(session)}>
-                              <Trash2 size={16} />
-                            </Button>
-                            <Button onClick={() => onEdit(session)} className="p-1 h-8 w-8" variant="ghost">
-                              <Edit size={16} />
-                            </Button>
-                          </div>
-                        </div> */}
-                                        </CardContent>
-                                    </Card>
-                                </div>
-                            );
-                        }}
-                    />
-                </div>)}
-
-                {/* FLOATING BATCH ACTION BAR */}
-                {selectedIds.size > 0 && (
-                    <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-background border shadow-lg rounded-full px-6 py-3 flex items-center gap-4 animate-in slide-in-from-bottom-5">
-                        <span className="text-sm font-medium bg-[#8A2BE2]/10 text-[#8A2BE2] px-3 py-1 rounded-full">
-                            {selectedIds.size} selected
-                        </span>
-                        <Button variant="ghost" size="sm" onClick={clearSelection}>
-                            Cancel
-                        </Button>
-
-                        {/* NEW: AI EXPORT BUTTON */}
-                        {/* <Button variant="outline" size="sm" onClick={handleCopyForAI} className="border-[#8A2BE2]/50 hover:bg-[#8A2BE2]/10">
-                            Copy for AI
-                        </Button> */}
-
-                        <Button size="sm" className="bg-[#8A2BE2] hover:bg-[#5D3FD3]" onClick={() => setIsBatchModalOpen(true)}>
-                            Batch Edit Tags
-                        </Button>
-                    </div>
-                )}
-
-                {/* BATCH EDIT MODAL */}
-                <Dialog open={isBatchModalOpen} onOpenChange={setIsBatchModalOpen}>
-                    <DialogContent>
-                        <DialogHeader>
-                            <DialogTitle>Batch Update {selectedIds.size} Sessions</DialogTitle>
-                            <DialogDescription>
-                                Warning: This will overwrite the existing tags for all selected sessions.
-                            </DialogDescription>
-                        </DialogHeader>
-
-                        <div className="grid gap-4 py-4">
-                            {/* TOPICS: Text Input + Clickable Badges */}
-                            <div className="grid grid-cols-4 items-center gap-4">
-                                <Label htmlFor="batch-topics" className="text-right">Topics</Label>
-                                <div className="col-span-3 space-y-2">
-                                    <Input
-                                        id="batch-topics"
-                                        value={batchTopics}
-                                        onChange={(e) => setBatchTopics(e.target.value)}
-                                        placeholder="Leave blank to keep existing topics..."
-                                        className="col-span-3"
-                                    />
-                                    {/* QUICK ADD PILLS: Click to append existing topics */}
-                                    {filterOptions.topics.length > 0 && (
-                                        <div className="flex flex-wrap gap-1.5 mt-2">
-                                            {filterOptions.topics.map(topic => (
-                                                <Badge
-                                                    key={topic}
-                                                    variant="secondary"
-                                                    className="cursor-pointer hover:bg-[#8A2BE2] hover:text-white transition-colors"
-                                                    onClick={() => {
-                                                        // Smart append: don't add if it's already there
-                                                        const current = batchTopics.split(',').map(t => t.trim()).filter(Boolean);
-                                                        if (!current.includes(topic)) {
-                                                            setBatchTopics(current.length ? `${batchTopics}, ${topic}` : topic);
-                                                        }
-                                                    }}
-                                                >
-                                                    + {topic}
-                                                </Badge>
-                                            ))}
-                                        </div>
-                                    )}
-
-                                    {/* THE MERGE CONTROLLER */}
-                                    {batchTopics.trim() !== '' && (
-                                        <div className="flex items-center space-x-2 bg-muted/50 p-2 rounded-md border text-sm">
-                                            <input
-                                                type="checkbox"
-                                                id="append-toggle"
-                                                checked={isAppendingTopics}
-                                                onChange={(e) => setIsAppendingTopics(e.target.checked)}
-                                                className="accent-[#8A2BE2] w-4 h-4 cursor-pointer"
-                                            />
-                                            <label htmlFor="append-toggle" className="cursor-pointer font-medium">
-                                                {isAppendingTopics
-                                                    ? "Keep existing topics and add these"
-                                                    : <span className="text-destructive font-bold">Overwrite all existing topics</span>}
-                                            </label>
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-
-                            {/* ACTIVITY: Native HTML Datalist (Autocomplete + Custom) */}
-                            <div className="grid grid-cols-4 items-center gap-4">
-                                <Label htmlFor="batch-activity" className="text-right">Activity</Label>
-                                <div className="col-span-3">
-                                    {/* <Input
-                                        id="batch-activity"
-                                        // list="existing-activities" // Connects to the datalist below
-                                        value={batchActivity}
-                                        onChange={(e) => setBatchActivity(e.target.value as ActivityType)}
-                                        placeholder="Leave blank to keep existing..."
-                                    /> */}
-                                    {/* <datalist id="existing-activities">
-                                        {filterOptions.activities.map(act => (
-                                            <option key={act} value={act} />
-                                        ))}
-                                    </datalist> */}
-                                    <AutocompleteInput
-                                        value={batchActivity}
-                                        onChange={setBatchActivity}
-                                        options={filterOptions.activities}
-                                        placeholder="Leave blank to keep existing..."
-                                    />
-                                </div>
-                            </div>
-
-                            {/* SOURCE: Native HTML Datalist */}
-                            <div className="grid grid-cols-4 items-center gap-4">
-                                <Label htmlFor="batch-source" className="text-right">Source</Label>
-                                <div className="col-span-3">
-                                    {/* <Input
-                                        // id="batch-source"
-                                        // list="existing-sources"
-                                        value={batchSource}
-                                        onChange={(e) => setBatchSource(e.target.value as SourceType)}
-                                        placeholder="Leave blank to keep existing..."
-                                    /> */}
-                                    {/* <datalist id="existing-sources">
-                                        {filterOptions.sources.map(src => (
-                                            <option key={src} value={src} />
-                                        ))}
-                                    </datalist> */}
-                                    <AutocompleteInput
-                                        value={batchSource}
-                                        onChange={setBatchSource}
-                                        options={filterOptions.sources}
-                                        placeholder="Leave blank to keep existing..."
-                                    />
-                                </div>
-                            </div>
-                        </div>
-
-                        <DialogFooter>
-                            <Button variant="outline" onClick={() => setIsBatchModalOpen(false)}>Cancel</Button>
-                            <Button
-                                className="bg-[#8A2BE2] hover:bg-[#5D3FD3]"
-                                onClick={() => {
-
-                                    // const payload: Record<string, any> = {};
-
-                                    // // 1. Only add to payload if the user actually typed something
-                                    // if (batchTopics.trim() !== '') {
-                                    //     const parsedTopics = batchTopics.split(',').map(t => t.trim()).filter(Boolean);
-                                    //     // payload['tags.topic'] = parsedTopics;
-                                    // }
-
-                                    // const intent: BatchUpdateIntent = {
-                                    //     appendTopics: isAppendingTopics,
-                                    // };
-
-                                    // if (batchActivity.trim() !== '') {
-                                    //     payload['tags.activity'] = batchActivity.trim();
-                                    // }
-
-                                    // if (batchSource.trim() !== '') {
-                                    //     payload['tags.source'] = batchSource.trim();
-                                    // }
-
-                                    const parsedTopics = batchTopics.split(',').map(t => t.trim()).filter(Boolean);
-
-                                    const intent: BatchUpdateIntent = {
-                                        appendTopics: isAppendingTopics,
-                                    };
-
-                                    // Only attach fields if the user actually typed something
-                                    if (parsedTopics.length > 0) intent.topics = parsedTopics;
-                                    if (batchActivity.trim() !== '') intent.activity = batchActivity.trim();
-                                    if (batchSource.trim() !== '') intent.source = batchSource.trim();
-
-                                    // 2. Prevent empty batches
-                                    if (Object.keys(intent).length === 1) { // Only appendTopics is there
-                                        toast.error("Nothing to update", { description: "All fields are blank." });
-                                        return;
-                                    }
-
-                                    // 3. Fire mutation
-                                    updateMultipleSessionsTag({
-                                        ids: Array.from(selectedIds),
-                                        intent,
-                                    });
-
-                                    // 4. Cleanup
-                                    setIsBatchModalOpen(false);
+                    {/* RIGHT COLUMN: INSPECTOR PANEL */}
+                    <div className={`flex-1 lg:w-1/2 h-full overflow-y-auto custom-scrollbar rounded-md border border-border/50 bg-card/30 ${(selectedInspectorSession && selectedIds.size === 0) || showMobileBatchEditor ? 'block' : 'hidden lg:block'}`}>
+                        {/* ... YOUR RIGHT PANEL CONTENT (SessionInspector / BatchEditorPanel / EmptyState) ... */}
+                        {selectedIds.size > 0 ? (
+                            <BatchEditorPanel
+                                selectedCount={selectedIds.size}
+                                filterOptions={filterOptions}
+                                onCancel={() => {
                                     clearSelection();
+                                    setShowMobileBatchEditor(false);
                                 }}
-                            >
-                                Apply to {selectedIds.size} Sessions
-                            </Button>
-                        </DialogFooter>
-                    </DialogContent>
-                </Dialog>
+                                onApply={(intent) => {
+                                    updateMultipleSessionsTag({ ids: Array.from(selectedIds), intent });
+                                    clearSelection();
+                                    setShowMobileBatchEditor(false);
+                                }}
+                            />
+                        ) : selectedInspectorSession ? (
+                            <SessionInspector
+                                session={selectedInspectorSession}
+                                filterOptions={filterOptions}
+                                onClose={() => setSelectedInspectorSession(null)}
+                                onUpdate={(id, updates) => {
+                                    updateSession({ id, updates });
+                                    setSelectedInspectorSession(prev => prev ? { ...prev, ...updates } : null);
+                                }}
+                                // onDelete={() => {
+                                //     onRequestDelete(selectedInspectorSession);
+                                //     setSelectedInspectorSession(null);
+                                // }}
+                            />
+                        ) : (
+                            <EmptyInspectorState />
+                        )}
+                    </div>
+                </div>
             </div>
-
         );
     }
 );
@@ -970,22 +832,13 @@ export default function SessionLog() {
         setDeleteCandidate(null);
     };
 
+
     return (
-        <div className="space-y-6">
-            <Card>
-                <CardHeader>
-                    <CardTitle>Sessions</CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <p className="text-sm text-muted-foreground">Your session logs and activity history.</p>
-                </CardContent>
-            </Card>
+        <div className="space-y-4">
 
-            {/* <Suspense fallback={<SessionsListSkeleton />}> */}
-            {/* Suspense is great, but our manual check above covers the 'cache miss' scenario better for this specific case */}
             <SessionsContent onEdit={handleEditClick} onRequestDelete={handleRequestDelete} />
-            {/* </Suspense> */}
 
+            {/* TODO: redundant code blocks - needs careful cleanup */}
             <Dialog open={!!editingSession} onOpenChange={(isOpen) => !isOpen && setEditingSession(null)}>
                 <DialogContent className="sm:max-w-[500px]">
                     <DialogHeader>

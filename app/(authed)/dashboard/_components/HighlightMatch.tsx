@@ -5,6 +5,10 @@ const HighlightMatch = ({ text, highlight }: { text: string; highlight: string }
   const regex = new RegExp(`(${highlight})`, 'gi');
   const parts = text.split(regex);
 
+  if (!highlight || highlight.trim() === '') {
+    return <span>{text}</span>; // Bail out instantly. Do zero math.
+  }
+
   return (
     <>
       {parts.map((part, i) =>
