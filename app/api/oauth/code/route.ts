@@ -18,7 +18,11 @@ export async function POST(req: Request) {
     });
 
     return NextResponse.json({ code: authCode });
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 });
+  } catch (err: unknown) {
+    const errorMessage = err instanceof Error ? err.message : 'An unexpected error occurred';
+    console.error('OAuth code route error:', errorMessage);
+    return NextResponse.json(
+      { error: 'server_error', error_description: errorMessage },
+      { status: 500 });
   }
 }

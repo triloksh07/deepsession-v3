@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -47,7 +47,7 @@ export default function MCPAuthPage() {
   const [isAuthorizing, setIsAuthorizing] = useState(false);
 
   // Generate code and write to Firestore using Client SDK directly
-  const completeAuthorization = async (user: FirebaseUser) => {
+  const completeAuthorization = useCallback(async (user: FirebaseUser) => {
     setIsAuthorizing(true);
     try {
       const code = crypto.randomUUID();
@@ -79,7 +79,7 @@ export default function MCPAuthPage() {
       setError(message);
       setIsAuthorizing(false);
     }
-  };
+  }, [clientId, redirectUri, state, codeChallenge]);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
@@ -88,7 +88,7 @@ export default function MCPAuthPage() {
       }
     });
     return () => unsubscribe();
-  }, []);
+  }, [completeAuthorization, isAuthorizing]);
 
   const handleEmailSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
