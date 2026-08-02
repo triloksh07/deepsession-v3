@@ -58,6 +58,7 @@ export default function MCPAuthPage() {
         uid: user.uid,
         client_id: clientId || 'default_client',
         redirect_uri: redirectUri || '',
+        state: state || '',
         code_challenge: codeChallenge || null,
         createdAt: serverTimestamp(),
       });

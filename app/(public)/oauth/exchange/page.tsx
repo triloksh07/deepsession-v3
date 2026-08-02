@@ -13,8 +13,9 @@ export default function TokenExchangePage() {
     const code = searchParams.get('code');
 
     const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
-    const [tokenData, setTokenData] = useState<{ access_token: string; expires_in: number } | null>(null);
+    // const [tokenData, setTokenData] = useState<{ access_token: string; expires_in: number } | null>(null);
     const [errorMessage, setErrorMessage] = useState('');
+    const [redirectingTo, setRedirectingTo] = useState<string | null>(null);
 
     useEffect(() => {
         if (!code) {
@@ -23,21 +24,21 @@ export default function TokenExchangePage() {
             return;
         }
 
-        async function exchangeCode() {
+        async function processExchangeAndRedirect() {
             try {
-                // 1. Fetch the code document directly using the authenticated client
+                // Fetch the code document directly using the authenticated client
                 const codeRef = doc(db, 'oauth_codes', code as string);
                 const codeSnap = await getDoc(codeRef);
 
                 if (!codeSnap.exists()) {
                     setStatus('error');
-                    setErrorMessage('Invalid or already consumed authorization code.');
+                    setErrorMessage('Invalid authorization code.');
                     return;
                 }
 
                 const data = codeSnap.data();
 
-                // 2. Expiration check
+                // Expiration check
                 if (data.expiresAt && data.expiresAt < Date.now()) {
                     await deleteDoc(codeRef);
                     setStatus('error');
@@ -45,18 +46,42 @@ export default function TokenExchangePage() {
                     return;
                 }
 
-                // 3. One-time use: Delete code from Firestore
+                // One-time use: Delete code from Firestore
                 await deleteDoc(codeRef);
 
-                // 4. Set state with user ID token or session identifier
+                // Set state with user ID token or session identifier
                 const user = auth.currentUser;
-                const idToken = user ? await user.getIdToken() : data.uid;
+                if (!user) {
+                    setStatus('error');
+                    setErrorMessage('User session expired. Please log in again.');
+                    return;
+                }
 
-                setTokenData({
-                    access_token: idToken,
-                    expires_in: 3600,
-                });
-                setStatus('success');
+                const idToken = await user.getIdToken();
+
+                // Construct Final Callback URL
+                const targetRedirectUri = data.redirect_uri || searchParams.get('redirect_uri');
+                const state = data.state || searchParams.get('state');
+
+                if (targetRedirectUri) {
+                    const callbackUrl = new URL(targetRedirectUri);
+
+                    // Pass access token and standard OAuth params in hash fragment or query depending on response_type
+                    callbackUrl.searchParams.set('access_token', idToken);
+                    callbackUrl.searchParams.set('token_type', 'Bearer');
+                    if (state) callbackUrl.searchParams.set('state', state);
+
+                    setRedirectingTo(callbackUrl.toString());
+                    setStatus('success');
+
+                    // Automatic redirection after brief status confirmation
+                    setTimeout(() => {
+                        window.location.href = callbackUrl.toString();
+                    }, 1200);
+                } else {
+                    // Fallback if testing manually without a redirect_uri
+                    setStatus('success');
+                }
             } catch (err: unknown) {
                 setStatus('error');
                 const message = err instanceof Error ? err.message : 'Failed to exchange authorization code.';
@@ -64,7 +89,7 @@ export default function TokenExchangePage() {
             }
         }
 
-        exchangeCode();
+        processExchangeAndRedirect();
     }, [code]);
 
     return (
@@ -88,7 +113,28 @@ export default function TokenExchangePage() {
                         </Alert>
                     )}
 
-                    {status === 'success' && tokenData && (
+
+                    {
+                        status === 'success' && (
+                            <div className="flex flex-col items-center space-y-3 py-4" >
+                                <CheckCircle2 className="h-10 w-10 text-green-500" />
+                                <p className="font-semibold text-base" > Authorization Successful! </p>
+                                {
+                                    redirectingTo ? (
+                                        <p className="text-xs text-muted-foreground" >
+                                            Redirecting back to application...
+                                        </p>
+                                    ) : (
+                                        <p className="text-xs text-muted-foreground" >
+                                            Authentication complete.You may now close this window.
+                                        </p>
+                                    )
+                                }
+                            </div>
+                        )
+                    }
+
+                    {/* {status === 'success' && tokenData && (
                         <div className="space-y-4">
                             <div className="flex items-center space-x-2 text-green-600">
                                 <CheckCircle2 className="h-5 w-5" />
@@ -98,7 +144,7 @@ export default function TokenExchangePage() {
                                 {tokenData.access_token}
                             </div>
                         </div>
-                    )}
+                    )} */}
                 </CardContent>
             </Card>
         </div>
