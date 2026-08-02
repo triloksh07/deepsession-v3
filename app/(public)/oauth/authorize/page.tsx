@@ -63,12 +63,16 @@ export default function MCPAuthPage() {
         createdAt: serverTimestamp(),
       });
 
-      if (redirectUri) {
-        const redirectUrl = new URL(redirectUri);
-        redirectUrl.searchParams.set('code', code);
-        if (state) redirectUrl.searchParams.set('state', state);
-        window.location.href = redirectUrl.toString();
-      }
+      // Instead of going straight to the client redirect_uri,
+      // redirect internally to your client-side exchange page:
+      const exchangeUrl = new URL('/oauth/exchange', window.location.origin);
+      exchangeUrl.searchParams.set('code', code);
+
+      if (redirectUri) exchangeUrl.searchParams.set('redirect_uri', redirectUri);
+      if (state) exchangeUrl.searchParams.set('state', state);
+
+      window.location.href = exchangeUrl.toString();
+
     } catch (err: unknown) {
       logger.error('Authorization code creation failed:', err);
       const message = err instanceof Error ? err.message : 'Failed to authorize client';
