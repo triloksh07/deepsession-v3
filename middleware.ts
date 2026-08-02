@@ -34,7 +34,8 @@ export function middleware(request: NextRequest) {
     https://www.googletagmanager.com
     https://vitals.vercel-insights.com
     https://github.com
-    https://api.github.com;
+    https://api.github.com
+    https://*.ngrok-free.dev;
   frame-src 'self'
     https://apis.google.com
     https://github.com
