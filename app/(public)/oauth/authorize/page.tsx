@@ -1,3 +1,4 @@
+// app/(public)/oauth/authorize/page.tsx
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
@@ -40,6 +41,10 @@ export default function MCPAuthPage() {
   const clientId = searchParams.get('client_id');
   const codeChallenge = searchParams.get('code_challenge');
 
+  // FIX: capture the RFC 8707 `resource` param MCP client (like Claude) sends, so the token
+  // endpoint can bind the issued JWT's `aud` claim to this exact MCP server.
+  const resource = searchParams.get('resource');
+
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({ email: '', password: '' });
   const [error, setError] = useState('');
@@ -60,11 +65,12 @@ export default function MCPAuthPage() {
         redirect_uri: redirectUri || '',
         state: state || '',
         code_challenge: codeChallenge || null,
+        resource: resource || null,
         createdAt: serverTimestamp(),
       });
 
-      // Instead of going straight to the client redirect_uri,
-      // redirect internally to your client-side exchange page:
+      // Redirect internally to the exchange page, which will hand the
+      // authorization code (not a token) back to the caller's redirect_uri.
       const exchangeUrl = new URL('/oauth/exchange', window.location.origin);
       exchangeUrl.searchParams.set('code', code);
 
@@ -79,7 +85,7 @@ export default function MCPAuthPage() {
       setError(message);
       setIsAuthorizing(false);
     }
-  }, [clientId, redirectUri, state, codeChallenge]);
+  }, [clientId, redirectUri, state, codeChallenge, resource]);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
