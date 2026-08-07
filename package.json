@@ -14,6 +14,11 @@
     "inspect": "NODE_OPTIONS='--inspect' pnpm dev",
     "clean": "turbo prune --scope=deepsession-v3 --docker && docker build -t deepsession-v3 -f ./pruned/Dockerfile ./pruned"
   },
+  "pnpm": {
+    "overrides": {
+      "jwks-rsa>jose": "4.15.9"
+    }
+  },
   "dependencies": {
     "@ducanh2912/next-pwa": "^10.2.9",
     "@hookform/resolvers": "^5.2.1",
