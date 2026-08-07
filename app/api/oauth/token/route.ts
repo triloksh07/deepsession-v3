@@ -1,7 +1,6 @@
 // app/api/oauth/token/route.ts
 import { NextResponse } from 'next/server';
-import { doc, getDoc, deleteDoc } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { adminDb } from '@/lib/firebaseAdmin';
 import { SignJWT } from 'jose';
 import crypto from 'node:crypto';
 
@@ -15,6 +14,21 @@ const secretKey = new TextEncoder().encode(MCP_JWT_SECRET);
 
 function base64UrlSha256(input: string): string {
   return crypto.createHash('sha256').update(input).digest('base64url');
+}
+
+// Define reusable CORS headers
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization, x-requested-with",
+};
+
+// Handle HTTP OPTIONS preflight request from browser
+export async function OPTIONS() {
+  return new NextResponse(null, {
+    status: 204,
+    headers: corsHeaders,
+  });
 }
 
 export async function POST(req: Request) {
@@ -35,62 +49,71 @@ export async function POST(req: Request) {
   } catch (err) {
     return NextResponse.json(
       { error: 'invalid_request', error_description: 'Failed to parse request body' },
-      { status: 400 }
+      {
+        status: 400,
+        headers: corsHeaders
+      }
     );
   }
 
   if (!code) {
     return NextResponse.json(
       { error: 'invalid_request', error_description: 'Missing authorization code' },
-      { status: 400 }
+      {
+        status: 400,
+        headers: corsHeaders
+      }
     );
   }
 
-  const codeDocRef = doc(db, 'oauth_codes', code);
-  const codeSnap = await getDoc(codeDocRef);
+  // --- ADMIN FIRESTORE QUERY ---
+  const codeDocRef = adminDb.collection("oauth_codes").doc(code);
+  const codeSnap = await codeDocRef.get();
 
-  if (!codeSnap.exists()) {
+  if (!codeSnap.exists) {
     return NextResponse.json(
       { error: 'invalid_grant', error_description: 'Invalid, expired, or already-used code' },
-      { status: 400 }
+      {
+        status: 400,
+        headers: corsHeaders
+      }
     );
   }
 
-  const data = codeSnap.data();
+  const data = codeSnap.data()!;
 
   // Expiration check — createdAt is a Firestore serverTimestamp on write
   const createdAtMs = data.createdAt?.toMillis ? data.createdAt.toMillis() : data.createdAt;
   if (createdAtMs && Date.now() - createdAtMs > 5 * 60 * 1000) {
-    await deleteDoc(codeDocRef);
+    await codeDocRef.delete();
     return NextResponse.json(
       { error: 'invalid_grant', error_description: 'Code expired' },
-      { status: 400 }
+      {
+        status: 400,
+        headers: corsHeaders
+      }
     );
   }
-
-  // Check expiration if expiresAt exists on the document
-  // if (data.expiresAt && data.expiresAt < Date.now()) {
-  //   await deleteDoc(codeDocRef);
-  //   return NextResponse.json(
-  //     { error: 'invalid_grant', error_description: 'Code expired' },
-  //     { status: 400 }
-  //   );
-  // }
-
 
   // PKCE verification (S256) — required since discovery metadata advertises it
   if (data.code_challenge) {
     if (!codeVerifier) {
       return NextResponse.json(
         { error: 'invalid_request', error_description: 'Missing code_verifier for PKCE exchange' },
-        { status: 400 }
+        {
+          status: 400,
+          headers: corsHeaders
+        }
       );
     }
     const computed = base64UrlSha256(codeVerifier);
     if (computed !== data.code_challenge) {
       return NextResponse.json(
         { error: 'invalid_grant', error_description: 'PKCE verification failed' },
-        { status: 400 }
+        {
+          status: 400,
+          headers: corsHeaders
+        }
       );
     }
   }
@@ -98,13 +121,16 @@ export async function POST(req: Request) {
   if (!data.uid) {
     return NextResponse.json(
       { error: 'server_error', error_description: 'No user bound to this authorization code' },
-      { status: 500 }
+      {
+        status: 500,
+        headers: corsHeaders
+      }
     );
   }
 
   // Consume the code here (One-time use) — this is the actual point of use, unlike the old
   // /oauth/exchange page which deleted it before the token was ever issued.
-  await deleteDoc(codeDocRef);
+  await codeDocRef.delete();
 
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://deepsession-mpt.vercel.app";
   const audience: string | undefined = data.resource || undefined;
@@ -121,9 +147,15 @@ export async function POST(req: Request) {
 
   const accessToken = await jwtBuilder.sign(secretKey);
 
-  return NextResponse.json({
-    access_token: accessToken,
-    token_type: 'Bearer',
-    expires_in: 3600,
-  });
+  return NextResponse.json(
+    {
+      access_token: accessToken,
+      token_type: 'Bearer',
+      expires_in: 3600,
+    },
+    {
+      status: 200,
+      headers: corsHeaders
+    }
+  );
 }

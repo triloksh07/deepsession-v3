@@ -36,6 +36,7 @@ const nextConfig: NextConfig = {
   // (These are now handled by middleware.ts)
   async headers() {
     return [
+      // Security Headers for all routes
       {
         source: '/:path*',
         headers: [
@@ -59,6 +60,15 @@ const nextConfig: NextConfig = {
             key: 'Referrer-Policy',
             value: 'strict-origin-when-cross-origin'
           },
+        ],
+      },
+      // Targeted CORS exclusively for OAuth & API endpoints
+      {
+        source: '/api/oauth/:path*',
+        headers: [
+          { key: 'Access-Control-Allow-Origin', value: '*' },
+          { key: 'Access-Control-Allow-Methods', value: 'GET, POST, OPTIONS' },
+          { key: 'Access-Control-Allow-Headers', value: 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization' },
         ],
       },
     ];
