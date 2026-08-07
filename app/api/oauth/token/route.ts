@@ -4,6 +4,8 @@ import { adminDb } from '@/lib/firebaseAdmin';
 import { SignJWT } from 'jose';
 import crypto from 'node:crypto';
 
+export const dynamic = 'force-dynamic';
+
 // Shared HMAC secret with the MCP server's middleware/auth.ts.
 // Must be identical in both deployments' environment variables.
 const MCP_JWT_SECRET = process.env.MCP_JWT_SECRET;
