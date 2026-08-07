@@ -46,9 +46,20 @@ export async function POST(req: Request) {
       status: 201,
       headers: corsHeaders
     });
-  } catch (err: any) {
+  }
+  catch (err: unknown) {
+    let message = "An unexpected error occurred";
+
+    if (err instanceof Error) {
+      message = err.message;
+    } else if (typeof err === "string") {
+      message = err;
+    } else {
+      message = JSON.stringify(err);
+    }
+
     return NextResponse.json(
-      { error: 'invalid_request', error_description: err.message },
+      { error: "invalid_request", error_description: message },
       { status: 400, headers: corsHeaders }
     );
   }
